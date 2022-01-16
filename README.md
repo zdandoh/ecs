@@ -32,7 +32,7 @@ cat.AddHealth(46)
 dog.AddHealth(100)
 
 cat.AddName("mixer")
-dog.AddName("mixer")
+dog.AddName("rex")
 
 dog.AddPosition(ecs.Position{45, 120})
 
