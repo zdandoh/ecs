@@ -145,7 +145,6 @@ func genCode(components []Component, maxEntities int, sourceFile string) string 
 	}
 
 	outStr := outputFi.String()
-	fmt.Println(outStr)
 	return outStr
 }
 

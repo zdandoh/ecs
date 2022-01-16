@@ -40,8 +40,21 @@ func NewEntity() *Entity {
 	return &w.entities[currIndex]
 }
 
-func AddSystem(s System) {
-	w.systems = append(w.systems, s)
+func AddSystem(newSystem System) {
+	insertIdx := len(w.systems)
+	for i, system := range w.systems {
+		if newSystem.Priority() > system.Priority() {
+			insertIdx = i
+			break
+		}
+	}
+
+	if len(w.systems) == insertIdx {
+		w.systems = append(w.systems, newSystem)
+	} else {
+		w.systems = append(w.systems[:insertIdx+1], w.systems[insertIdx:]...)
+		w.systems[insertIdx] = newSystem
+	}
 }
 
 func Update() {
