@@ -51,7 +51,7 @@ ecs.SelectWithComponents(func(e ecs.Entity) {
 dog.Kill()
 
 ecs.SelectWithComponents(func(e ecs.Entity) {
-	// The "dog" component is no longer returned in queries
+	// The "dog" entity is no longer returned in queries
 	fmt.Printf("%s has %d health\n", *e.Name(), *e.Health())
 }, ecs.ComponentHealth, ecs.ComponentName)
 ```
