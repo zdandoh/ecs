@@ -1,4 +1,4 @@
-package ecs
+package PACKAGE_NAME
 
 import (
 	"math/bits"
@@ -50,7 +50,7 @@ func idToIdx(id ComponentID) int {
 func SelectWithComponent(callback func(entity Entity), c ComponentID) {
 	compRange := ranges[idToIdx(c)]
 	for i := compRange.low; uint64(i) < compRange.high+1; i++ {
-		if w.entities[i].HasComponent(c) {
+		if w.entities[i].HasComponent(c) && w.entities[i].alive {
 			compRange.Add(i)
 			callback(w.entities[i])
 		}
@@ -68,7 +68,7 @@ func SelectWithComponents(callback func(entity Entity), ids ...ComponentID) {
 	checkRange := rangeIntersection(idRanges...)
 
 	for i := checkRange.low; i < checkRange.high+1; i++ {
-		if w.entities[i].HasComponent(idMask) {
+		if w.entities[i].HasComponent(idMask) && w.entities[i].alive {
 			callback(w.entities[i])
 		}
 	}

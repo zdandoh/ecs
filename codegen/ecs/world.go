@@ -1,4 +1,4 @@
-package ecs
+package PACKAGE_NAME
 
 type worldState struct {
 	compCount uint64

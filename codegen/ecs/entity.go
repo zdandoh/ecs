@@ -1,4 +1,4 @@
-package ecs
+package PACKAGE_NAME
 
 type Entity struct {
 	id         uint64

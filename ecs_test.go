@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ecs/ecs"
 	"fmt"
+	ecs "github.com/zdandoh/ecs/ecspkg"
 	"testing"
 )
 
@@ -50,7 +50,7 @@ func BenchmarkComponentSelect(b *testing.B) {
 		found = 0
 		ecs.SelectWithComponent(func(e ecs.Entity) {
 			found += 1
-		}, ecs.ComponentPosition)
+		}, ecs.ComponentHealth)
 	}
 
 	fmt.Println(found)
@@ -102,7 +102,4 @@ func TestECS(t *testing.T) {
 			t.FailNow()
 		}
 	}, ecs.ComponentHealth)
-}
-
-func TestRanges(t *testing.T) {
 }

@@ -8,7 +8,6 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -198,7 +197,12 @@ func setupPackage(generatedPackage string) error {
 		}
 		defer newFi.Close()
 
-		_, err = io.Copy(newFi, sourceFi)
+		sourceBytes, err := ioutil.ReadAll(sourceFi)
+		if err != nil {
+			return err
+		}
+		sourceBytes = bytes.Replace(sourceBytes,[]byte("package PACKAGE_NAME"), []byte("package " + generatedPackage), 1)
+		_, err = newFi.Write(sourceBytes)
 		if err != nil {
 			return err
 		}
