@@ -57,7 +57,7 @@ ecs.SelectWithComponents(func(e ecs.Entity) {
 ```
 
 ### About
-This library is far from complete, and is mostly just a first pass at what a performanct ecs library with a nice API might look like in Go. The implementation allocates minimally at runtime and tries to be cache efficient. Creating new entities or components does not allocate. Queries should execute very quickly, even with tens of thousands of entities. Below are some areas that need additional attention:
+This library is far from complete, and is mostly just a first pass at what a performant ecs library with a nice API might look like in Go. The implementation allocates minimally at runtime and tries to be cache efficient. Creating new entities or components does not allocate. Queries should execute very quickly, even with tens of thousands of entities. Below are some areas that need additional attention:
 - Cleaner generated code
 - A limit of 64 components are supported for a generated package
 - A hardcoded maximum number of entities is supported. This number can be specified at package generation time
