@@ -18,7 +18,14 @@ func (e *Entity) Add{{ .Name }}(c {{ .Name }}) {
 
 {{ range $i, $c := .Comps }}
 func (e *Entity) Remove{{ .Name }}() {
+    var zero {{ .Name }}
     e.components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
-    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = {{ .Name }}{}
+    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = zero
+}
+{{ end }}
+
+{{ range $i, $c := .Comps }}
+func (e *Entity) Has{{ .Name }}() bool {
+    return e.components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
 }
 {{ end }}

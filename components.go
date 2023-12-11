@@ -7,9 +7,7 @@ type Velocity struct {
 	Y int
 }
 
-type Health struct {
-	Value int
-}
+type Health int
 
 type Position struct {
 	X int

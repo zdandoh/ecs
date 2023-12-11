@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	ecs "github.com/zdandoh/ecs/ecspkg"
 	"testing"
 )
@@ -38,7 +39,7 @@ func BenchmarkSelectMatch(b *testing.B) {
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
 		dog.AddPosition(ecs.Position{100, 100})
-		dog.AddHealth(ecs.Health{456})
+		dog.AddHealth(456)
 	}
 
 	b.ResetTimer()
@@ -59,7 +60,7 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
 		dog.AddPosition(ecs.Position{100, 100})
-		dog.AddHealth(ecs.Health{456})
+		dog.AddHealth(456)
 	}
 
 	b.ResetTimer()
@@ -72,6 +73,26 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 			b.Fatal("too many entities found")
 		}
 	}
+}
+
+func TestHasComponent(t *testing.T) {
+	dog := ecs.NewEntity()
+	dog.AddHealth(45)
+	dog.AddPosition(ecs.Position{45, 120})
+
+	if dog.HasVelocity() {
+		t.Fatal("incorrect component")
+	}
+	if !dog.HasHealth() {
+		t.Fatal("missing component")
+	}
+	if !dog.HasPosition() {
+		t.Fatal("missing component")
+	}
+
+	ecs.Select(func(e ecs.Entity, health *ecs.Health) {
+		fmt.Printf("Health: %d\n", *health)
+	})
 }
 
 func test1(entity ecs.Entity, health *ecs.Health) {

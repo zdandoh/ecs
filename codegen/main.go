@@ -65,7 +65,7 @@ func main() {
 
 	comps, compMap, compFile := findComponents(componentFile, generatedPackage)
 	selects := findSelects(systemPkg, compMap)
-	fmt.Println(selects)
+
 	context := &Ctx{
 		Pkg:                generatedPackage,
 		Comps:              comps,
@@ -200,7 +200,6 @@ func recursiveCopy(fs embed.FS, dir string, packageName string, context *Ctx) er
 		return fmt.Errorf("readdir err: %w", err)
 	}
 
-	fmt.Println(files)
 	for _, fi := range files {
 		if fi.IsDir() {
 			err := recursiveCopy(fs, dir+"/"+fi.Name(), filepath.Join(packageName, fi.Name()), context)
