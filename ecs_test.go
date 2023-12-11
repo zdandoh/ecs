@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	ecs "github.com/zdandoh/ecs/ecspkg"
 	"testing"
 )
@@ -76,6 +75,8 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 }
 
 func TestHasComponent(t *testing.T) {
+	ecs.Reset()
+
 	dog := ecs.NewEntity()
 	dog.AddHealth(45)
 	dog.AddPosition(ecs.Position{45, 120})
@@ -90,9 +91,25 @@ func TestHasComponent(t *testing.T) {
 		t.Fatal("missing component")
 	}
 
+	found := false
 	ecs.Select(func(e ecs.Entity, health *ecs.Health) {
-		fmt.Printf("Health: %d\n", *health)
+		found = true
 	})
+	if !found {
+		t.Fatal("didn't find in select")
+	}
+
+	dog.Kill()
+
+	newDog := ecs.NewEntity()
+	newDog.AddHealth(45)
+
+	if dog.HasHealth() {
+		t.Fatal("dead entity shouldn't have component")
+	}
+	if !newDog.HasHealth() {
+		t.Fatal("new entity should have component")
+	}
 }
 
 func test1(entity ecs.Entity, health *ecs.Health) {

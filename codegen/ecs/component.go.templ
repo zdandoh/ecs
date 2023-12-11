@@ -10,22 +10,33 @@ const {{ $comp.Name }}ID ComponentID = {{ lshift $i }}
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e *Entity) Add{{ .Name }}(c {{ .Name }}) {
-    e.components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
+func (e Entity) Add{{ .Name }}(c {{ .Name }}) {
+    if !e.Alive() {
+        return
+    }
+
+    entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
     store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = c
 }
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e *Entity) Remove{{ .Name }}() {
+func (e Entity) Remove{{ .Name }}() {
+    if !e.Alive() {
+        return
+    }
+
     var zero {{ .Name }}
-    e.components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
+    entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
     store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = zero
 }
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e *Entity) Has{{ .Name }}() bool {
-    return e.components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
+func (e Entity) Has{{ .Name }}() bool {
+    if !e.Alive() {
+        return false
+    }
+    return entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
 }
 {{ end }}

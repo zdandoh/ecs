@@ -31,7 +31,7 @@ func Reset() {
     newEntityPage()
 }
 
-func NewEntity() *Entity {
+func NewEntity() Entity {
     var retID EntityID
     if len(freeList) == 0 {
         if currEntities >= entityCap {
@@ -47,10 +47,9 @@ func NewEntity() *Entity {
 
 	entities[retID >> entityPageBits][retID % entityPageSize] = Entity{
 	    id: retID,
-	    generation: entities[retID >> entityPageBits][retID % entityPageSize].generation + 1,
-	    alive: true}
+	    generation: entities[retID >> entityPageBits][retID % entityPageSize].generation + 1}
 
-	return &entities[retID >> entityPageBits][retID % entityPageSize]
+	return entities[retID >> entityPageBits][retID % entityPageSize]
 }
 
 func AddSystem(newSystem System) {

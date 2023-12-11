@@ -11,19 +11,29 @@ type Entity struct {
 	id         EntityID
 	generation uint64
 	components ComponentMapping
-	alive      bool
 }
 
 var freeList []EntityID
 var entities [][]Entity
 
-func (e *Entity) Kill() {
+func (e Entity) Kill() {
+    if !e.Alive() {
+        return
+    }
 	freeList = append(freeList, e.id)
-	e.alive = false
+	entities[e.id >> entityPageBits][e.id % entityPageSize].generation++
+	entities[e.id >> entityPageBits][e.id % entityPageSize].components = ComponentMapping{}
+}
+
+func (e Entity) Alive() bool {
+    return e.generation == entities[e.id >> entityPageBits][e.id % entityPageSize].generation
 }
 
 {{ range $i, $c := .Comps }}
 func (e Entity) {{ $c.Name }}() *{{ $c.Name }} {
+    if !e.Alive() {
+        return nil
+    }
     if entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
         return &store{{ $c.Name }}[e.id >> entityPageBits][e.id % entityPageSize]
     }
