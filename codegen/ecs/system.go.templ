@@ -1,6 +1,6 @@
-package PACKAGE_NAME
+package {{ .Pkg }}
 
 type System interface {
-	Update()
+	Update(entity Entity)
 	Priority() int
 }

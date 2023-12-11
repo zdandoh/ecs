@@ -1,0 +1,71 @@
+package {{ .Pkg }}
+
+var currEntities = 0
+var entityCap = 0
+
+var systems []System
+
+func init() {
+    newEntityPage()
+}
+
+func newEntityPage() {
+    newPage := make([]Entity, entityPageSize)
+    entities = append(entities, newPage)
+
+    {{ range .Comps }}
+    new{{ .Name }}Page := make([]{{ .Name }}, entityPageSize)
+    store{{ .Name }} = append(store{{ .Name }}, new{{ .Name }}Page)
+    {{ end }}
+    entityCap += entityPageSize
+}
+
+func Reset() {
+    entities = nil
+    {{ range .Comps }}
+    store{{ .Name }} = nil
+    {{ end }}
+    currEntities = 0
+    entityCap = 0
+
+    newEntityPage()
+}
+
+func NewEntity() *Entity {
+    var retID EntityID
+    if len(freeList) == 0 {
+        if currEntities >= entityCap {
+            newEntityPage()
+        }
+
+        retID = EntityID(currEntities)
+        currEntities++
+    } else {
+        retID = freeList[len(freeList)-1]
+        freeList = freeList[:len(freeList)-1]
+    }
+
+	entities[retID >> entityPageBits][retID % entityPageSize] = Entity{
+	    id: retID,
+	    generation: entities[retID >> entityPageBits][retID % entityPageSize].generation + 1,
+	    alive: true}
+
+	return &entities[retID >> entityPageBits][retID % entityPageSize]
+}
+
+func AddSystem(newSystem System) {
+	insertIdx := len(systems)
+	for i, system := range systems {
+		if newSystem.Priority() > system.Priority() {
+			insertIdx = i
+			break
+		}
+	}
+
+	if len(systems) == insertIdx {
+		systems = append(systems, newSystem)
+	} else {
+		systems = append(systems[:insertIdx+1], systems[insertIdx:]...)
+		systems[insertIdx] = newSystem
+	}
+}

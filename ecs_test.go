@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	ecs "github.com/zdandoh/ecs/ecspkg"
 	"testing"
 )
@@ -9,6 +8,7 @@ import (
 func BenchmarkEntityCreation(b *testing.B) {
 	ecs.Reset()
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		ecs.NewEntity()
 	}
@@ -32,74 +32,52 @@ func BenchmarkComponentCreation(b *testing.B) {
 	}
 }
 
-func BenchmarkComponentSelect(b *testing.B) {
+func BenchmarkSelectMatch(b *testing.B) {
 	ecs.Reset()
 
-	for i := 0; i < 10_000; i++ {
-		e := ecs.NewEntity()
-		e.AddHealth(ecs.Health{54})
-	}
-	for i := 0; i < 100; i++ {
-		e := ecs.NewEntity()
-		e.AddPosition(ecs.Position{32, 45})
+	for i := 0; i < 10000; i++ {
+		dog := ecs.NewEntity()
+		dog.AddPosition(ecs.Position{100, 100})
+		dog.AddHealth(ecs.Health{456})
 	}
 
-	found := 0
-
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		found = 0
-		ecs.SelectWithComponent(func(e ecs.Entity) {
-			found += 1
-		}, ecs.ComponentHealth)
-	}
-
-	fmt.Println(found)
-}
-
-func BenchmarkComponentMultiSelect(b *testing.B) {
-	ecs.Reset()
-
-	for i := 0; i < 100_000; i++ {
-		e := ecs.NewEntity()
-		e.AddHealth(ecs.Health{54})
-	}
-	for i := 0; i < 100; i++ {
-		e := ecs.NewEntity()
-		e.AddPosition(ecs.Position{32, 45})
-		e.AddHealth(ecs.Health{21})
-	}
-
-	found := 0
-	for n := 0; n < b.N; n++ {
-		ecs.SelectWithComponents(func(e ecs.Entity) {
-			found += 1
-		}, ecs.ComponentHealth, ecs.ComponentPosition)
-	}
-}
-
-func TestECS(t *testing.T) {
-	ecs.Reset()
-
-	for i := 0; i < 100; i++ {
-		e := ecs.NewEntity()
-		e.AddHealth(ecs.Health{45})
-	}
-	for i := 0; i < 100; i++ {
-		e := ecs.NewEntity()
-		e.AddPosition(ecs.Position{23, 45})
-	}
-
-	ecs.SelectWithComponent(func(e ecs.Entity) {
-		e.Health().Value += 1
-	}, ecs.ComponentHealth)
-
-	ecs.SelectWithComponent(func(e ecs.Entity) {
-
-	}, ecs.ComponentPosition)
-
-	ecs.SelectWithComponent(func(e ecs.Entity) {
-		if e.Health().Value != 46 {
-			t.FailNow()
+		c := 0
+		ecs.Select(func(entity ecs.Entity, health *ecs.Health, pos *ecs.Position) {
+			c++
+		})
+		if c < 10000 {
+			b.Fatal("not enough entities found")
 		}
-	}, ecs.ComponentHealth)
+	}
+}
+
+func BenchmarkSelectUnmatched(b *testing.B) {
+	ecs.Reset()
+
+	for i := 0; i < 10000; i++ {
+		dog := ecs.NewEntity()
+		dog.AddPosition(ecs.Position{100, 100})
+		dog.AddHealth(ecs.Health{456})
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		c := 0
+		ecs.Select(func(entity ecs.Entity, v *ecs.Velocity) {
+			c++
+		})
+		if c > 0 {
+			b.Fatal("too many entities found")
+		}
+	}
+}
+
+func test1(entity ecs.Entity, health *ecs.Health) {
+
+}
+
+func test2(entity ecs.Entity, pos *ecs.Position) {
+
 }

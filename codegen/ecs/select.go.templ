@@ -1,0 +1,22 @@
+package {{ .Pkg }}
+
+func Select(selector interface{}) {
+    match := true
+    var entity Entity
+    for i := 0; i < currEntities; i++ {
+        match = true
+        entity = entities[i >> entityPageBits][i % entityPageSize]
+        switch fun := selector.(type) {
+        {{ range .Selects }}
+        case func(Entity, {{ range .Args }}*{{ .Name }}, {{ end }}):
+            {{ range .Args }}match = match && entity.components[{{ compmapindex .CompIndex }}] & {{ compsubindex .CompIndex }} != 0
+            {{ end }}
+            if match {
+                fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
+            }
+        {{ end }}
+        default:
+            panic("unknown selector function: run go generate")
+        }
+    }
+}

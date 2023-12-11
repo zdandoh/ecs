@@ -1,0 +1,24 @@
+package {{ .Pkg }}
+
+type ComponentID uint64
+
+{{ range .Comps }}
+var store{{ .Name }} [][]{{ .Name }}{{ end }}
+
+{{ range $i, $comp := .Comps }}
+const {{ $comp.Name }}ID ComponentID = {{ lshift $i }}
+{{ end }}
+
+{{ range $i, $c := .Comps }}
+func (e *Entity) Add{{ .Name }}(c {{ .Name }}) {
+    e.components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
+    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = c
+}
+{{ end }}
+
+{{ range $i, $c := .Comps }}
+func (e *Entity) Remove{{ .Name }}() {
+    e.components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
+    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = {{ .Name }}{}
+}
+{{ end }}
