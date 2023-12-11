@@ -28,7 +28,7 @@ type Health int
 ```go
 package main
 
-// This will generate a package named "myecspkg" when go generate is run.
+// This will generate a package named "myecspkg" when go generate is run. Paths can be relative.
 //go:generate go run github.com/zdandoh/ecs/codegen myecspkg /path/to/components.go /path/to/this/package
 
 import (
