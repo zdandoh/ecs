@@ -56,9 +56,9 @@ func main() {
     ecs.Select(func(entity ecs.Entity, hp *ecs.Health) {
         *hp -= 1
         if hp <= 0 {
-			if entity.HasName() {
-				fmt.Printf("%s died!\n", entity.Name())
-			}
+            if entity.HasName() {
+                fmt.Printf("%s died!\n", entity.Name())
+            }
             entity.Kill()
         }
     })
