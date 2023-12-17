@@ -170,6 +170,7 @@ func findSelects(path string, compNames map[string]int) []Select {
 	// Inject at least one select to avoid unuse import errors in the generated select package
 	for firstComponent, _ := range compNames {
 		selects[firstComponent] = []string{firstComponent}
+		break
 	}
 
 	for _, pkg := range dir {
