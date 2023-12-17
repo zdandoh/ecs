@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"io/ioutil"
 	"log"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -34,6 +36,8 @@ var templFuncs = map[string]interface{}{
 
 type Ctx struct {
 	Pkg                string
+	FullPkg            string
+	CompImport         string
 	Comps              []Component
 	CompCount          int
 	CompContainerCount int
@@ -56,11 +60,11 @@ type Select struct {
 
 func main() {
 	if len(os.Args) < 3 {
-		log.Fatal("usage: go generate ecs/codegen package_name component_defs")
+		log.Fatal("usage: go generate ecs/codegen package_name component_pkg")
 	}
 
 	generatedPackage := os.Args[1]
-	componentFile := os.Args[2]
+	componentPkg := os.Args[2]
 
 	genFile, ok := os.LookupEnv("GOFILE")
 	if !ok {
@@ -72,11 +76,32 @@ func main() {
 	}
 	systemPkg := filepath.Dir(genFile)
 
-	comps, compMap, compFile := findComponents(componentFile, generatedPackage)
+	moduleFileDir := systemPkg
+	var modData []byte
+	var subpackages []string
+	for {
+		modData, err = os.ReadFile(filepath.Join(moduleFileDir, "go.mod"))
+		if err != nil && os.IsNotExist(err) {
+			subpackages = append(subpackages, filepath.Base(moduleFileDir))
+			moduleFileDir = filepath.Dir(moduleFileDir)
+			continue
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		break
+	}
+	slices.Reverse(subpackages)
+	subpackagePath := strings.Join(subpackages, "/")
+	modulePath := ModulePath(modData)
+
+	comps, compMap := findComponents(componentPkg)
 	selects := findSelects(systemPkg, compMap)
 
 	context := &Ctx{
 		Pkg:                generatedPackage,
+		FullPkg:            path.Join(modulePath, subpackagePath, generatedPackage),
+		CompImport:         fmt.Sprintf(`import comp "%s"`, path.Join(modulePath, subpackagePath, filepath.Clean(componentPkg))),
 		Comps:              comps,
 		CompCount:          len(comps),
 		CompContainerCount: int(math.Ceil(float64(len(comps)) / 64)),
@@ -88,18 +113,49 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("error setting up package: %w", err))
 	}
-
-	err = ioutil.WriteFile(filepath.Join(generatedPackage, "gen_components.go"), []byte(compFile), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
-func updatePackage(generatedPackage string, fi *ast.File, fset *token.FileSet) string {
-	fi.Name.Name = generatedPackage
-	buf := bytes.NewBuffer(nil)
-	printer.Fprint(buf, fset, fi)
-	return buf.String()
+var (
+	slashSlash = []byte("//")
+	moduleStr  = []byte("module")
+)
+
+// ModulePath returns the module path from the gomod file text.
+// If it cannot find a module path, it returns an empty string.
+// It is tolerant of unrelated problems in the go.mod file.
+// From golang.org/x/mod/modfile
+func ModulePath(mod []byte) string {
+	for len(mod) > 0 {
+		line := mod
+		mod = nil
+		if i := bytes.IndexByte(line, '\n'); i >= 0 {
+			line, mod = line[:i], line[i+1:]
+		}
+		if i := bytes.Index(line, slashSlash); i >= 0 {
+			line = line[:i]
+		}
+		line = bytes.TrimSpace(line)
+		if !bytes.HasPrefix(line, moduleStr) {
+			continue
+		}
+		line = line[len(moduleStr):]
+		n := len(line)
+		line = bytes.TrimSpace(line)
+		if len(line) == n || len(line) == 0 {
+			continue
+		}
+
+		if line[0] == '"' || line[0] == '`' {
+			p, err := strconv.Unquote(string(line))
+			if err != nil {
+				return "" // malformed quoted string or multiline module path
+			}
+			return p
+		}
+
+		return string(line)
+	}
+	return "" // missing module path
 }
 
 func findSelects(path string, compNames map[string]int) []Select {
@@ -110,6 +166,12 @@ func findSelects(path string, compNames map[string]int) []Select {
 	}
 
 	selects := make(map[string][]string)
+
+	// Inject at least one select to avoid unuse import errors in the generated select package
+	for firstComponent, _ := range compNames {
+		selects[firstComponent] = []string{firstComponent}
+	}
+
 	for _, pkg := range dir {
 		for _, fi := range pkg.Files {
 			ast.Inspect(fi, func(n ast.Node) bool {
@@ -173,29 +235,33 @@ func findSelects(path string, compNames map[string]int) []Select {
 	return uniqueSelects
 }
 
-func findComponents(path string, newPkg string) ([]Component, map[string]int, string) {
+func findComponents(path string) ([]Component, map[string]int) {
 	fset := token.NewFileSet()
-	fi, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+	dir, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var components []Component
-	ast.Inspect(fi, func(n ast.Node) bool {
-		typeSpec, ok := n.(*ast.TypeSpec)
-		if !ok {
-			return true
-		}
+	for _, pkg := range dir {
+		for _, fi := range pkg.Files {
+			ast.Inspect(fi, func(n ast.Node) bool {
+				typeSpec, ok := n.(*ast.TypeSpec)
+				if !ok {
+					return true
+				}
 
-		components = append(components, Component{typeSpec.Name.Name})
-		return true
-	})
+				components = append(components, Component{typeSpec.Name.Name})
+				return true
+			})
+		}
+	}
 
 	compMap := make(map[string]int)
 	for i, component := range components {
 		compMap[component.Name] = i
 	}
-	return components, compMap, updatePackage(newPkg, fi, fset)
+	return components, compMap
 }
 
 func recursiveCopy(fs embed.FS, dir string, packageName string, context *Ctx) error {

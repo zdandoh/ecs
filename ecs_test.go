@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/zdandoh/ecs/components"
 	ecs "github.com/zdandoh/ecs/ecspkg"
 	"testing"
 )
@@ -28,7 +29,7 @@ func BenchmarkComponentCreation(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		e := ecs.NewEntity()
-		e.AddPosition(ecs.Position{3, 4})
+		e.AddPosition(components.Position{3, 4})
 	}
 }
 
@@ -37,14 +38,14 @@ func BenchmarkSelectMatch(b *testing.B) {
 
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
-		dog.AddPosition(ecs.Position{100, 100})
+		dog.AddPosition(components.Position{100, 100})
 		dog.AddHealth(456)
 	}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		c := 0
-		ecs.Select(func(entity ecs.Entity, health *ecs.Health, pos *ecs.Position) {
+		ecs.Select(func(entity ecs.Entity, health *components.Health, pos *components.Position) {
 			c++
 		})
 		if c < 10000 {
@@ -58,14 +59,14 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
-		dog.AddPosition(ecs.Position{100, 100})
+		dog.AddPosition(components.Position{100, 100})
 		dog.AddHealth(456)
 	}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		c := 0
-		ecs.Select(func(entity ecs.Entity, v *ecs.Velocity) {
+		ecs.Select(func(entity ecs.Entity, v *components.Velocity) {
 			c++
 		})
 		if c > 0 {
@@ -79,7 +80,7 @@ func TestHasComponent(t *testing.T) {
 
 	dog := ecs.NewEntity()
 	dog.AddHealth(45)
-	dog.AddPosition(ecs.Position{45, 120})
+	dog.AddPosition(components.Position{45, 120})
 
 	if dog.HasVelocity() {
 		t.Fatal("incorrect component")
@@ -92,7 +93,7 @@ func TestHasComponent(t *testing.T) {
 	}
 
 	found := false
-	ecs.Select(func(e ecs.Entity, health *ecs.Health) {
+	ecs.Select(func(e ecs.Entity, health *components.Health) {
 		found = true
 	})
 	if !found {
@@ -112,10 +113,10 @@ func TestHasComponent(t *testing.T) {
 	}
 }
 
-func test1(entity ecs.Entity, health *ecs.Health) {
+func test1(entity ecs.Entity, health *components.Health) {
 
 }
 
-func test2(entity ecs.Entity, pos *ecs.Position) {
+func test2(entity ecs.Entity, pos *components.Position) {
 
 }

@@ -1,0 +1,7 @@
+package entity
+
+type Ref struct {
+	id         uint64
+	generation uint64
+	components [{{ .CompContainerCount }}]uint64
+}

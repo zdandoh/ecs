@@ -1,5 +1,9 @@
 package {{ .Pkg }}
 
+{{ .CompImport }}
+import "{{ .FullPkg }}/entity"
+import "unsafe"
+
 var currEntities = 0
 var entityCap = 0
 
@@ -14,7 +18,7 @@ func newEntityPage() {
     entities = append(entities, newPage)
 
     {{ range .Comps }}
-    new{{ .Name }}Page := make([]{{ .Name }}, entityPageSize)
+    new{{ .Name }}Page := make([]comp.{{ .Name }}, entityPageSize)
     store{{ .Name }} = append(store{{ .Name }}, new{{ .Name }}Page)
     {{ end }}
     entityCap += entityPageSize
@@ -50,4 +54,8 @@ func NewEntity() Entity {
 	    generation: entities[retID >> entityPageBits][retID % entityPageSize].generation + 1}
 
 	return entities[retID >> entityPageBits][retID % entityPageSize]
+}
+
+func Lookup(r entity.Ref) Entity {
+    return *(*Entity)(unsafe.Pointer(&r))
 }

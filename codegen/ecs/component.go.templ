@@ -1,16 +1,18 @@
 package {{ .Pkg }}
 
+{{ .CompImport }}
+
 type ComponentID uint64
 
 {{ range .Comps }}
-var store{{ .Name }} [][]{{ .Name }}{{ end }}
+var store{{ .Name }} [][]comp.{{ .Name }}{{ end }}
 
 {{ range $i, $comp := .Comps }}
 const {{ $comp.Name }}ID ComponentID = {{ lshift $i }}
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Add{{ .Name }}(c {{ .Name }}) {
+func (e Entity) Add{{ .Name }}(c comp.{{ .Name }}) {
     if !e.Alive() {
         return
     }
@@ -26,7 +28,7 @@ func (e Entity) Remove{{ .Name }}() {
         return
     }
 
-    var zero {{ .Name }}
+    var zero comp.{{ .Name }}
     entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
     store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = zero
 }
