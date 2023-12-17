@@ -55,13 +55,22 @@ type Select struct {
 }
 
 func main() {
-	if len(os.Args) < 4 {
-		log.Fatal("usage: go generate ecs/codegen package_name component_defs system_pkg")
+	if len(os.Args) < 3 {
+		log.Fatal("usage: go generate ecs/codegen package_name component_defs")
 	}
 
 	generatedPackage := os.Args[1]
 	componentFile := os.Args[2]
-	systemPkg := os.Args[3]
+
+	genFile, ok := os.LookupEnv("GOFILE")
+	if !ok {
+		log.Fatal("This program should be run via go generate!")
+	}
+	genFile, err := filepath.Abs(genFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	systemPkg := filepath.Dir(genFile)
 
 	comps, compMap, compFile := findComponents(componentFile, generatedPackage)
 	selects := findSelects(systemPkg, compMap)
@@ -75,7 +84,7 @@ func main() {
 		SelectCount:        len(selects),
 	}
 
-	err := setupPackage(context)
+	err = setupPackage(context)
 	if err != nil {
 		log.Fatal(fmt.Errorf("error setting up package: %w", err))
 	}
