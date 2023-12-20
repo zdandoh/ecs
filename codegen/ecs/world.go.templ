@@ -63,3 +63,7 @@ func Lookup(r entity.Ref) Entity {
 func (e Entity) Ref() entity.Ref {
     return *(*entity.Ref)(unsafe.Pointer(&e))
 }
+
+func EntityCount() int {
+    return currEntities
+}
