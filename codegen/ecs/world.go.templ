@@ -59,3 +59,7 @@ func NewEntity() Entity {
 func Lookup(r entity.Ref) Entity {
     return *(*Entity)(unsafe.Pointer(&r))
 }
+
+func (e Entity) Ref() entity.Ref {
+    return *(*entity.Ref)(unsafe.Pointer(&e))
+}

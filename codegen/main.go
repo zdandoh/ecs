@@ -55,7 +55,8 @@ type SelectArg struct {
 }
 
 type Select struct {
-	Args []SelectArg
+	Args      []SelectArg
+	EarlyStop bool
 }
 
 func main() {
@@ -158,6 +159,11 @@ func ModulePath(mod []byte) string {
 	return "" // missing module path
 }
 
+type foundSelect struct {
+	compNames   []string
+	earlyReturn bool
+}
+
 func findSelects(path string, compNames map[string]int) []Select {
 	fset := token.NewFileSet()
 	dir, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
@@ -165,11 +171,11 @@ func findSelects(path string, compNames map[string]int) []Select {
 		log.Fatal(err)
 	}
 
-	selects := make(map[string][]string)
+	selects := make(map[string]foundSelect)
 
 	// Inject at least one select to avoid unuse import errors in the generated select package
 	for firstComponent, _ := range compNames {
-		selects[firstComponent] = []string{firstComponent}
+		selects[firstComponent] = foundSelect{compNames: []string{firstComponent}, earlyReturn: false}
 		break
 	}
 
@@ -179,6 +185,27 @@ func findSelects(path string, compNames map[string]int) []Select {
 				funcType, ok := n.(*ast.FuncType)
 				if !ok {
 					return true
+				}
+
+				// See if we have a boolean return value to indicate early stop
+				var returns []*ast.Field
+				if funcType.Results != nil {
+					returns = funcType.Results.List
+				}
+				if len(returns) > 1 {
+					return true
+				}
+
+				earlyReturn := false
+				for _, ret := range returns {
+					ident, ok := ret.Type.(*ast.Ident)
+					if !ok {
+						return true
+					}
+					if ident.Name != "bool" {
+						return true
+					}
+					earlyReturn = true
 				}
 
 				params := funcType.Params.List
@@ -213,7 +240,12 @@ func findSelects(path string, compNames map[string]int) []Select {
 						}
 					}
 				}
-				selects[strings.Join(comps, ",")] = comps
+
+				extraKey := ""
+				if earlyReturn {
+					extraKey = ",early_return"
+				}
+				selects[strings.Join(comps, ",")+extraKey] = foundSelect{compNames: comps, earlyReturn: earlyReturn}
 
 				return true
 			})
@@ -223,14 +255,15 @@ func findSelects(path string, compNames map[string]int) []Select {
 	var uniqueSelects []Select
 	for _, val := range selects {
 		args := make([]SelectArg, 0)
-		for _, compName := range val {
+		for _, compName := range val.compNames {
 			args = append(args, SelectArg{
 				Name:      compName,
 				CompIndex: compNames[compName],
 			})
 		}
 		uniqueSelects = append(uniqueSelects, Select{
-			Args: args,
+			Args:      args,
+			EarlyStop: val.earlyReturn,
 		})
 	}
 	return uniqueSelects

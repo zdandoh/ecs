@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/zdandoh/ecs/components"
 	ecs "github.com/zdandoh/ecs/ecspkg"
+	"github.com/zdandoh/ecs/ecspkg/entity"
 	"testing"
 )
 
@@ -72,6 +73,36 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 		if c > 0 {
 			b.Fatal("too many entities found")
 		}
+	}
+}
+
+func TestValidEmptyRef(t *testing.T) {
+	ecs.Reset()
+
+	dog := ecs.NewEntity()
+	var ref entity.Ref
+	if ecs.Lookup(ref).Alive() {
+		t.Fatal()
+	}
+	_ = dog
+}
+
+func TestStopEarly(t *testing.T) {
+	ecs.Reset()
+
+	dog := ecs.NewEntity()
+	cat := ecs.NewEntity()
+
+	dog.AddHealth(54)
+	cat.AddHealth(45)
+
+	count := 0
+	ecs.Select(func(e ecs.Entity, health *components.Health) bool {
+		count++
+		return false
+	})
+	if count != 1 {
+		t.Fatal(count)
 	}
 }
 
