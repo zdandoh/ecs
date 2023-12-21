@@ -42,3 +42,14 @@ func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
     return nil
 }
 {{ end }}
+
+// Components returns all components on an entity, but it isn't fast - don't use for non-debug purposes!
+func (e Entity) Components() []interface{} {
+    comps := make([]interface{}, 0)
+    {{ range .Comps }}
+    if e.Has{{ .Name }}() {
+        comps = append(comps, *e.{{ .Name }}())
+    }
+    {{ end}}
+    return comps
+}

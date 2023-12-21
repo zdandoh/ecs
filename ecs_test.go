@@ -106,6 +106,18 @@ func TestStopEarly(t *testing.T) {
 	}
 }
 
+func TestGetAllComponents(t *testing.T) {
+	ecs.Reset()
+
+	dog := ecs.NewEntity()
+	dog.AddHealth(45)
+	dog.AddPosition(components.Position{1, 1})
+	dog.AddVelocity(components.Velocity{2, 2})
+	if len(dog.Components()) != 3 {
+		t.Fatal(dog.Components())
+	}
+}
+
 func TestHasComponent(t *testing.T) {
 	ecs.Reset()
 

@@ -1,6 +1,8 @@
 package {{ .Pkg }}
 
 {{ .CompImport }}
+import "fmt"
+import "reflect"
 
 func Select(selector interface{}) {
     match := true
@@ -24,7 +26,7 @@ func Select(selector interface{}) {
         case func(Entity):
             fun(entity)
         default:
-            panic("unknown selector function: run go generate")
+            panic(fmt.Sprintf("unknown selector function: run go generate: %s", reflect.TypeOf(selector).String()))
         }
     }
 }
