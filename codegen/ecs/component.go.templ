@@ -12,7 +12,7 @@ const {{ $comp.Name }}ID ComponentID = {{ lshift $i }}
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Add{{ .Name }}(c comp.{{ .Name }}) {
+func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {
     if !e.Alive() {
         return
     }

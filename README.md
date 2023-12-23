@@ -68,13 +68,13 @@ func main() {
     dog := ecs.NewEntity()
     
     // Give them some components
-    cat.AddHealth(46)
-    dog.AddHealth(100)
+    cat.SetHealth(46)
+    dog.SetHealth(100)
     
-    cat.AddName("mixer")
-    dog.AddName("rex")
+    cat.SetName("mixer")
+    dog.SetName("rex")
     
-    dog.AddPosition(components.Position{45, 120})
+    dog.SetPosition(components.Position{45, 120})
     
     // Run efficient ECS queries without reflection
     ecs.Select(func(entity ecs.Entity, name *components.Name, hp *components.Health) {

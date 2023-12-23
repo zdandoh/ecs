@@ -30,7 +30,7 @@ func BenchmarkComponentCreation(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		e := ecs.NewEntity()
-		e.AddPosition(components.Position{3, 4})
+		e.SetPosition(components.Position{3, 4})
 	}
 }
 
@@ -39,8 +39,8 @@ func BenchmarkSelectMatch(b *testing.B) {
 
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
-		dog.AddPosition(components.Position{100, 100})
-		dog.AddHealth(456)
+		dog.SetPosition(components.Position{100, 100})
+		dog.SetHealth(456)
 	}
 
 	b.ResetTimer()
@@ -60,8 +60,8 @@ func BenchmarkSelectUnmatched(b *testing.B) {
 
 	for i := 0; i < 10000; i++ {
 		dog := ecs.NewEntity()
-		dog.AddPosition(components.Position{100, 100})
-		dog.AddHealth(456)
+		dog.SetPosition(components.Position{100, 100})
+		dog.SetHealth(456)
 	}
 
 	b.ResetTimer()
@@ -93,8 +93,8 @@ func TestStopEarly(t *testing.T) {
 	dog := ecs.NewEntity()
 	cat := ecs.NewEntity()
 
-	dog.AddHealth(54)
-	cat.AddHealth(45)
+	dog.SetHealth(54)
+	cat.SetHealth(45)
 
 	count := 0
 	ecs.Select(func(e ecs.Entity, health *components.Health) bool {
@@ -110,9 +110,9 @@ func TestGetAllComponents(t *testing.T) {
 	ecs.Reset()
 
 	dog := ecs.NewEntity()
-	dog.AddHealth(45)
-	dog.AddPosition(components.Position{1, 1})
-	dog.AddVelocity(components.Velocity{2, 2})
+	dog.SetHealth(45)
+	dog.SetPosition(components.Position{1, 1})
+	dog.SetVelocity(components.Velocity{2, 2})
 	if len(dog.Components()) != 3 {
 		t.Fatal(dog.Components())
 	}
@@ -122,8 +122,8 @@ func TestHasComponent(t *testing.T) {
 	ecs.Reset()
 
 	dog := ecs.NewEntity()
-	dog.AddHealth(45)
-	dog.AddPosition(components.Position{45, 120})
+	dog.SetHealth(45)
+	dog.SetPosition(components.Position{45, 120})
 
 	if dog.HasVelocity() {
 		t.Fatal("incorrect component")
@@ -146,7 +146,7 @@ func TestHasComponent(t *testing.T) {
 	dog.Kill()
 
 	newDog := ecs.NewEntity()
-	newDog.AddHealth(45)
+	newDog.SetHealth(45)
 
 	if dog.HasHealth() {
 		t.Fatal("dead entity shouldn't have component")
