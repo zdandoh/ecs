@@ -43,6 +43,16 @@ func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
 }
 {{ end }}
 
+{{ range $i, $c := .Comps }}
+func (e Entity) Default{{ $c.Name }}(def comp.{{ $c.Name }}) *comp.{{ $c.Name }} {
+    if !e.Has{{ $c.Name }}() {
+        e.Set{{ $c.Name }}(def)
+    }
+
+    return &store{{ $c.Name }}[e.id >> entityPageBits][e.id % entityPageSize]
+}
+{{ end }}
+
 // Components returns all components on an entity, but it isn't fast - don't use for non-debug purposes!
 func (e Entity) Components() []interface{} {
     comps := make([]interface{}, 0)

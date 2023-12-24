@@ -88,6 +88,18 @@ func TestValidEmptyRef(t *testing.T) {
 	_ = dog
 }
 
+func TestDefault(t *testing.T) {
+	ecs.Reset()
+
+	dog := ecs.NewEntity()
+	dog.SetHealth(components.Health(45))
+	hp := dog.DefaultHealth(components.Health(65))
+	v := dog.DefaultVelocity(components.Velocity{20, 20})
+	if *hp != 45 || v.X != 20 || v.Y != 20 {
+		t.Fatal(hp, v)
+	}
+}
+
 func TestStopEarly(t *testing.T) {
 	ecs.Reset()
 
