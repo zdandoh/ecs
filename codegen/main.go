@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"io/ioutil"
 	"log"
@@ -295,9 +296,11 @@ func findComponents(path string) ([]Component, map[string]int) {
 				structType, ok := typeSpec.Type.(*ast.StructType)
 				if ok {
 					for _, field := range structType.Fields.List {
+						var typeString strings.Builder
+						_ = printer.Fprint(&typeString, fset, field.Type)
 						structMembers = append(structMembers, structMember{
 							Name: field.Names[0].Name,
-							Type: fmt.Sprintf("%s", field.Type),
+							Type: typeString.String(),
 						})
 					}
 				}

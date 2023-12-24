@@ -119,17 +119,6 @@ func TestGetAllComponents(t *testing.T) {
 	}
 }
 
-func TestAddComponent(t *testing.T) {
-	dog := ecs.NewEntity()
-	dog.SetPosition(components.Position{5, 5})
-	dog.AddPosition(6, 6)
-
-	pos := dog.Position()
-	if pos.X != 6 || pos.Y != 6 {
-		t.Fatal(pos)
-	}
-}
-
 func TestHasComponent(t *testing.T) {
 	ecs.Reset()
 

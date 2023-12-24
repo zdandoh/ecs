@@ -22,20 +22,6 @@ func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {
 }
 {{ end }}
 
-{{ range $i, $c := .Comps }}{{ if .StructMembers }}
-func (e Entity) Add{{ .Name }}({{ range .StructMembers }}{{ .Name }} {{ .Type }}, {{ end }}) {
-    if !e.Alive() {
-        return
-    }
-
-    c := comp.{{ .Name }}{
-        {{ range .StructMembers }}{{ .Name }}: {{ .Name }},{{ end }}
-    }
-    entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
-    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = c
-}
-{{ end }}{{ end }}
-
 {{ range $i, $c := .Comps }}
 func (e Entity) Remove{{ .Name }}() {
     if !e.Alive() {
