@@ -1,10 +1,11 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/zdandoh/ecs/components"
 	ecs "github.com/zdandoh/ecs/ecspkg"
 	"github.com/zdandoh/ecs/ecspkg/entity"
-	"testing"
 )
 
 func BenchmarkEntityCreation(b *testing.B) {
@@ -115,6 +116,17 @@ func TestGetAllComponents(t *testing.T) {
 	dog.SetVelocity(components.Velocity{2, 2})
 	if len(dog.Components()) != 3 {
 		t.Fatal(dog.Components())
+	}
+}
+
+func TestAddComponent(t *testing.T) {
+	dog := ecs.NewEntity()
+	dog.SetPosition(components.Position{5, 5})
+	dog.AddPosition(6, 6)
+
+	pos := dog.Position()
+	if pos.X != 6 || pos.Y != 6 {
+		t.Fatal(pos)
 	}
 }
 

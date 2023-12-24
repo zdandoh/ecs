@@ -45,8 +45,14 @@ type Ctx struct {
 	SelectCount        int
 }
 
-type Component struct {
+type structMember struct {
 	Name string
+	Type string
+}
+
+type Component struct {
+	Name          string
+	StructMembers []structMember
 }
 
 type SelectArg struct {
@@ -285,7 +291,18 @@ func findComponents(path string) ([]Component, map[string]int) {
 					return true
 				}
 
-				components = append(components, Component{typeSpec.Name.Name})
+				structMembers := make([]structMember, 0)
+				structType, ok := typeSpec.Type.(*ast.StructType)
+				if ok {
+					for _, field := range structType.Fields.List {
+						structMembers = append(structMembers, structMember{
+							Name: field.Names[0].Name,
+							Type: fmt.Sprintf("%s", field.Type),
+						})
+					}
+				}
+
+				components = append(components, Component{typeSpec.Name.Name, structMembers})
 				return true
 			})
 		}
