@@ -100,6 +100,25 @@ func TestDefault(t *testing.T) {
 	}
 }
 
+func TestIsEntity(t *testing.T) {
+	ecs.Reset()
+
+	dog := ecs.NewEntity()
+	dog.SetHealth(45)
+
+	var other ecs.Entity
+	ecs.Select(func(e ecs.Entity, hp *components.Health) {
+		other = e
+	})
+
+	if dog == other {
+		t.Fatal()
+	}
+	if !dog.Is(other) {
+		t.Fatal()
+	}
+}
+
 func TestStopEarly(t *testing.T) {
 	ecs.Reset()
 

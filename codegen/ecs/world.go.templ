@@ -60,6 +60,10 @@ func Lookup(r entity.Ref) Entity {
     return *(*Entity)(unsafe.Pointer(&r))
 }
 
+func (e Entity) Is(other Entity) bool {
+    return e.id == other.id && e.generation == other.generation
+}
+
 func (e Entity) Ref() entity.Ref {
     return *(*entity.Ref)(unsafe.Pointer(&e))
 }

@@ -5,3 +5,7 @@ type Ref struct {
 	generation uint64
 	components [{{ .CompContainerCount }}]uint64
 }
+
+func (r Ref) Is(other Ref) bool {
+    return r.id == other.id && r.generation == other.generation
+}
