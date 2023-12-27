@@ -27,10 +27,6 @@ func (e Entity) Kill() {
 	entities[e.id >> entityPageBits][e.id % entityPageSize].components = ComponentMapping{}
 }
 
-func (e Entity) ID() EntityID {
-    return e.id
-}
-
 func (e Entity) Alive() bool {
     return e.generation == entities[e.id >> entityPageBits][e.id % entityPageSize].generation
 }
