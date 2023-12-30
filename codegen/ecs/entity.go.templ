@@ -22,7 +22,6 @@ func (e Entity) Kill() {
     if !e.Alive() {
         return
     }
-    currEntities--
 	freeList = append(freeList, e.id)
 	entities[e.id >> entityPageBits][e.id % entityPageSize].generation++
 	entities[e.id >> entityPageBits][e.id % entityPageSize].components = ComponentMapping{}
