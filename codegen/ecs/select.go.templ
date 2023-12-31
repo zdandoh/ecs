@@ -3,6 +3,39 @@ package {{ .Pkg }}
 {{ .CompImport }}
 import "fmt"
 import "reflect"
+import "slices"
+import "sync"
+
+var sortLock sync.Mutex
+
+func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
+    sortLock.Lock()
+    defer sortLock.Unlock()
+
+    i := 0
+    switch selector.(type) {
+    {{ range .Selects }}{{if not .EarlyStop}}
+    case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}):
+        Select(func(e Entity, {{ range $i, $arg := .Args }}arg{{ $i }} *comp.{{ $arg.Name }}, {{ end }}) {
+            sortSpace[i] = e
+            i++
+        })
+    {{ end }}{{ end }}
+    default:
+        panic(fmt.Sprintf("unknown selector function: run go generate: %s", reflect.TypeOf(selector).String()))
+    }
+
+    slices.SortFunc(sortSpace[:i], cmp)
+    for j := 0; j < i; j++ {
+        entity := sortSpace[j]
+        switch fun := selector.(type) {
+        {{ range .Selects }}{{if not .EarlyStop}}
+        case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}):
+            fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
+        {{ end }}{{ end }}
+        }
+    }
+}
 
 func Select(selector interface{}) {
     match := true

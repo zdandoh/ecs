@@ -13,9 +13,12 @@ func init() {
     newEntityPage()
 }
 
+var sortSpace []Entity
+
 func newEntityPage() {
     newPage := make([]Entity, entityPageSize)
     entities = append(entities, newPage)
+    sortSpace = make([]Entity, entityCap + entityPageSize)
 
     {{ range .Comps }}
     new{{ .Name }}Page := make([]comp.{{ .Name }}, entityPageSize)

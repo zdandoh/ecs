@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/zdandoh/ecs/components"
@@ -117,6 +118,26 @@ func TestIsEntity(t *testing.T) {
 	if !dog.Is(other) {
 		t.Fatal()
 	}
+}
+
+func TestSelectSorted(t *testing.T) {
+	ecs.Reset()
+
+	e1 := ecs.NewEntity()
+	e2 := ecs.NewEntity()
+	e3 := ecs.NewEntity()
+	e4 := ecs.NewEntity()
+
+	e1.SetHealth(67)
+	e2.SetHealth(43)
+	e4.SetHealth(100)
+	e3.SetPosition(components.Position{3, 3})
+
+	ecs.SelectSorted(func(a ecs.Entity, b ecs.Entity) int {
+		return int(*a.Health() - *b.Health())
+	}, func(e ecs.Entity, hp *components.Health) {
+		fmt.Println(*hp)
+	})
 }
 
 func TestStopEarly(t *testing.T) {
