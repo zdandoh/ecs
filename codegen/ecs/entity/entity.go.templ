@@ -9,3 +9,7 @@ type Ref struct {
 func (r Ref) Is(other Ref) bool {
     return r.id == other.id && r.generation == other.generation
 }
+
+func (r Ref) Zero() bool {
+    return r.id == 0 && r.generation == 0
+}

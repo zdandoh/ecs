@@ -67,6 +67,10 @@ func (e Entity) Is(other Entity) bool {
     return e.id == other.id && e.generation == other.generation
 }
 
+func (e Entity) Zero() bool {
+    return e.id == 0 && e.generation == 0
+}
+
 func (e Entity) Ref() entity.Ref {
     return *(*entity.Ref)(unsafe.Pointer(&e))
 }
