@@ -18,6 +18,16 @@ type Position struct {
 	Y int
 }
 
+type Pos struct {
+	X float64
+	Y float64
+}
+
+type Vel struct {
+	X float64
+	Y float64
+}
+
 type Complex struct {
 	Target entity.Ref
 }

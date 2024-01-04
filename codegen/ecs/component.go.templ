@@ -2,14 +2,19 @@ package {{ .Pkg }}
 
 {{ .CompImport }}
 
-type ComponentID uint64
+type ComponentID [{{ .CompContainerCount }}]uint64
 
 {{ range .Comps }}
 var store{{ .Name }} [][]comp.{{ .Name }}{{ end }}
 
 {{ range $i, $comp := .Comps }}
-const {{ $comp.Name }}ID ComponentID = {{ lshift $i }}
+var {{ $comp.Name }}ID = ComponentID{}
 {{ end }}
+
+func init() {
+    {{ range $i, $comp := .Comps }}
+    {{ $comp.Name }}ID[{{ compmapindex $i }}] = {{ compsubindex $i }}{{ end }}
+}
 
 {{ range $i, $c := .Comps }}
 func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {

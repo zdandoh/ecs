@@ -140,6 +140,49 @@ func TestSelectSorted(t *testing.T) {
 	})
 }
 
+func BenchmarkEntityCreation2(b *testing.B) {
+	ecs.Reset()
+
+	for i := 0; i < 1000; i++ {
+		e := ecs.NewEntity()
+		e.SetPos(components.Pos{
+			X: 45,
+			Y: 3846,
+		})
+		e.SetVel(components.Vel{
+			X: 38456,
+			Y: 1234,
+		})
+	}
+	for i := 0; i < 9000; i++ {
+		e := ecs.NewEntity()
+		e.SetPos(components.Pos{
+			X: 45,
+			Y: 3846,
+		})
+	}
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		ecs.Select(func(e ecs.Entity, vel *components.Vel, pos *components.Pos) {
+			pos.X += vel.X
+			pos.Y += vel.Y
+		})
+	}
+}
+
+func TestComponentID(t *testing.T) {
+	ecs.Reset()
+
+	if ecs.VelocityID == ecs.PosID {
+		t.Fatal()
+	}
+	if ecs.VelocityID != ecs.VelocityID {
+		t.Fatal()
+	}
+}
+
 func TestStopEarly(t *testing.T) {
 	ecs.Reset()
 
@@ -168,6 +211,22 @@ func TestGetAllComponents(t *testing.T) {
 	dog.SetVelocity(components.Velocity{2, 2})
 	if len(dog.Components()) != 3 {
 		t.Fatal(dog.Components())
+	}
+}
+
+func TestSelectDead(t *testing.T) {
+	ecs.Reset()
+
+	e1 := ecs.NewEntity()
+	e1.SetPos(components.Pos{})
+	e1.Kill()
+
+	c := 0
+	ecs.Select(func(e ecs.Entity, p *components.Pos) {
+		c++
+	})
+	if c > 0 {
+		t.Fatal(c)
 	}
 }
 

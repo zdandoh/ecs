@@ -29,6 +29,7 @@ func newEntityPage() {
 
 func Reset() {
     entities = nil
+    freeList = nil
     {{ range .Comps }}
     store{{ .Name }} = nil
     {{ end }}
