@@ -40,15 +40,14 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
 func Select(selector interface{}) {
     cont := true
     _ = cont
-    var entity Entity
 
+    var entity Entity
     switch fun := selector.(type) {
     {{ range .Selects }}
     case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
         for _, page := range entities {
-            for i := 0; i < entityPageSize; i++ {
+            for _, entity = range page {
                 match := true
-                entity = page[i]
                 {{ range .Args }}
                 match = entity.components[{{ compmapindex .CompIndex }}] & {{ compsubindex .CompIndex }} != 0
                 if !match {
@@ -63,9 +62,8 @@ func Select(selector interface{}) {
         }
     {{ end }}
     case func(Entity):
-        for i := 0; i < currEntities; i++ {
-            entity = entities[i >> entityPageBits][i % entityPageSize]
-            if entity.Alive() {
+        for _, page := range entities {
+            for _, entity := range page {
                 fun(entity)
             }
         }
