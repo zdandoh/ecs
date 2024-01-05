@@ -31,6 +31,10 @@ func (e Entity) Alive() bool {
     return e.generation == entities[e.id >> entityPageBits][e.id % entityPageSize].generation
 }
 
+func (e Entity) ID() EntityID {
+    return e.id
+}
+
 {{ range $i, $c := .Comps }}
 func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
     if !e.Alive() {
