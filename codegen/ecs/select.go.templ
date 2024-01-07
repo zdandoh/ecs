@@ -43,20 +43,31 @@ func Select(selector interface{}) {
 
     var entity Entity
     switch fun := selector.(type) {
+    {{ $containerCount := .CompContainerCount }}
     {{ range .Selects }}
+    {{ $sel := . }}
     case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
-        for _, page := range entities {
+        {{ range $i := makerange $containerCount }}
+        const matchID{{ $i }} = {{ range $sel.Args }}{{ $mapindex := compmapindex .CompIndex }}{{ if eq $mapindex $i }}{{ compsubindex .CompIndex }} |{{ end }}{{ end }} 0
+        {{ end }}
+
+        for pageNo, page := range entities {
+            {{ range .Args }}
+            found{{ .Name }} := uint16(0)
+            max{{ .Name }} := pageHeaders[pageNo][{{ .CompIndex }}]
+            {{ end }}
             for _, entity = range page {
-                match := true
-                {{ range .Args }}
-                match = entity.components[{{ compmapindex .CompIndex }}] & {{ compsubindex .CompIndex }} != 0
-                if !match {
-                    continue
+                if {{ range .Args}}found{{ .Name }} >= max{{ .Name }} ||{{ end }} false {
+                    break
                 }
+                {{ range .Args }}
+                found{{ .Name }} += uint16((entity.components[{{ compmapindex .CompIndex }}] >> {{ .CompIndex }}) & 1)
                 {{ end }}
 
-                {{ if .EarlyStop }}cont = {{ end }}fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
-                {{ if .EarlyStop }}if !cont { return }{{ end }}
+                if {{ range $i := makerange $containerCount }}matchID{{ $i }} & entity.components[{{ $i }}] == matchID{{ $i }} &&{{ end }} true {
+                    {{ if .EarlyStop }}cont = {{ end }}fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
+                    {{ if .EarlyStop }}if !cont { return }{{ end }}
+                }
             }
 
         }

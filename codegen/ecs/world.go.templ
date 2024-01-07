@@ -18,6 +18,8 @@ var sortSpace []Entity
 func newEntityPage() {
     newPage := make([]Entity, entityPageSize)
     entities = append(entities, newPage)
+
+    pageHeaders = append(pageHeaders, pageHeader{})
     sortSpace = make([]Entity, entityCap + entityPageSize)
 
     {{ range .Comps }}
@@ -30,6 +32,7 @@ func newEntityPage() {
 func Reset() {
     entities = nil
     freeList = nil
+    pageHeaders = nil
     {{ range .Comps }}
     store{{ .Name }} = nil
     {{ end }}

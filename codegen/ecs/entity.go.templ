@@ -1,6 +1,7 @@
 package {{ .Pkg }}
 
 {{ .CompImport }}
+import "math/bits"
 
 const entityPageBits = 10
 const entityPageSize = 1 << entityPageBits
@@ -15,13 +16,25 @@ type Entity struct {
 	components ComponentMapping
 }
 
+type pageHeader [{{ .CompCount }}]uint16
+
 var freeList []EntityID
+var pageHeaders []pageHeader
 var entities [][]Entity
 
 func (e Entity) Kill() {
     if !e.Alive() {
         return
     }
+
+    for _, compPart := range entities[e.id >> entityPageBits][e.id % entityPageSize].components {
+        end := 64 - bits.LeadingZeros64(compPart)
+        start := bits.TrailingZeros64(compPart)
+        for i := start; i < end; i++ {
+            pageHeaders[e.id>>entityPageBits][i] -= uint16((compPart >> i) & 1)
+        }
+    }
+
 	freeList = append(freeList, e.id)
 	entities[e.id >> entityPageBits][e.id % entityPageSize].generation++
 	entities[e.id >> entityPageBits][e.id % entityPageSize].components = ComponentMapping{}

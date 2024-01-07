@@ -33,6 +33,9 @@ var templFuncs = map[string]interface{}{
 	"compsubindex": func(index int) int {
 		return 1 << (index % 64)
 	},
+	"makerange": func(i int) []int {
+		return make([]int, i)
+	},
 }
 
 type Ctx struct {

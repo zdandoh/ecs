@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/zdandoh/ecs/components"
 	ecs "github.com/zdandoh/ecs/ecspkg"
@@ -143,6 +144,7 @@ func TestSelectSorted(t *testing.T) {
 func BenchmarkEntityCreation2(b *testing.B) {
 	ecs.Reset()
 
+	s := time.Now()
 	for i := 0; i < 1000; i++ {
 		e := ecs.NewEntity()
 		e.SetPos(components.Pos{
@@ -161,13 +163,40 @@ func BenchmarkEntityCreation2(b *testing.B) {
 			Y: 3846,
 		})
 	}
+	fmt.Println(time.Since(s))
 
 	b.ResetTimer()
-
 	for n := 0; n < b.N; n++ {
 		ecs.Select(func(e ecs.Entity, vel *components.Vel, pos *components.Pos) {
 			pos.X += vel.X
 			pos.Y += vel.Y
+		})
+	}
+}
+
+func BenchmarkRemoveComponent(b *testing.B) {
+	ecs.Reset()
+
+	s := time.Now()
+	for i := 0; i < 1000; i++ {
+		e := ecs.NewEntity()
+		e.SetPos(components.Pos{
+			X: 45,
+			Y: 4567,
+		})
+	}
+	fmt.Println(time.Since(s))
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		ecs.Select(func(e ecs.Entity, pos *components.Pos) {
+			e.SetVel(components.Vel{
+				X: 12345,
+				Y: 67899,
+			})
+		})
+		ecs.Select(func(e ecs.Entity, pos *components.Pos, vel *components.Vel) {
+			e.RemoveVel()
 		})
 	}
 }
