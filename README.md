@@ -1,5 +1,5 @@
 # ecs
-Proof of concept Golang ECS library using `go generate`
+Golang ECS library using `go generate`
 
 ### About
 This library is a code generator that creates a bespoke entity component system library based off the provided input. The goal of this library is to provide
@@ -50,6 +50,8 @@ func main() {
 }
 ```
 
+4. Run `go generate`
+
 You're done! The generated ECS package can be imported and used
 ```go
 package main
@@ -94,6 +96,20 @@ func main() {
 If you use this library you probably will want to run `go generate` as a
 pre-build step.
 
+### Performance
+Performance is a major concern for an ECS library. This library implements a bitset ECS,
+so average query performance will be slower than an archetype based ECS
+like [arche](https://github.com/mlange-42/arche) but with significantly faster component addition and removal times.
+
+The generated code is efficient. On my machine, a query like:
+```go
+ecs.Select(func(e ecs.Entity, pos *components.Pos, vel *components.Vel) {
+    pos.X += vel.X
+    pos.Y += vel.Y
+})
+```
+Costs 3.75 ns per matching entity, and 0.75 ns per non-matching entity. 
+
 ### How It Works
 The code generator uses the provided component definitions to generate
 helper functions and storage data structures for each component, but also
@@ -101,5 +117,4 @@ analyzes the root package to determine which component queries are made.
 This is necessary because the library needs to know which subsets
 of components might be queried against so that it can generate code to serve
 those queries. This allows the generated library to fully avoid reflection
-while maintaining the nice selection syntax. This probably isn't a great idea,
-but it seems cool!
+while maintaining the nice selection syntax.
