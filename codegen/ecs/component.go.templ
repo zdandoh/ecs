@@ -84,8 +84,15 @@ func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.
                 cleanup = true
                 continue
             }
-            each(ent, {{ if .HasData }}&entry.data{{ end }})
+
+            origSlice := rel.rels
+            each(ent, {{ if .HasData }}&rel.rels[i].data{{ end }})
+            // Copy any mutations made with the passed pointer if the slice changes
+            if cap(origSlice) != cap(rel.rels) && origSlice[i].ident == rel.rels[i].ident {
+                rel.rels[i] = origSlice[i]
+            }
         }
+
         if cleanup {
             rel.rels = slices.DeleteFunc(rel.rels, func(ent rel{{ .Name }}Entry) bool {
                 return ent.ident == 0
@@ -114,23 +121,27 @@ func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Nam
     if found {
         return
     }
+
     rel.rels = slices.Insert(rel.rels, index, newEnt)
 }
 
-func (e Entity) {{ .Name }}(target Entity) bool {
+func (e Entity) {{ .Name }}(target Entity) {{ if .HasData }}*comp.{{ .Name }}{{ else }}bool{{ end }} {
     if !target.Alive() || !e.Alive() {
-        return false
+        return {{ if .HasData }}nil{{ else }}false{{ end }}
     }
 
     rel := e._{{ .Name }}()
     if rel == nil {
-        return false
+        return {{ if .HasData }}nil{{ else }}false{{ end }}
     }
 
-    _, found := slices.BinarySearchFunc(rel.rels, rel{{ .Name }}Entry{ident: target.ident}, func(a, b rel{{ .Name }}Entry) int {
+    {{ if .HasData }}index{{ else }}_{{ end }}, found := slices.BinarySearchFunc(rel.rels, rel{{ .Name }}Entry{ident: target.ident}, func(a, b rel{{ .Name }}Entry) int {
         return int(a.ident >> 32) - int(b.ident >> 32)
     })
-    return found
+    if !found {
+        return {{ if .HasData }}nil{{ else }}false{{ end }}
+    }
+    return {{ if .HasData }}&rel.rels[index].data{{ else }}true{{ end }}
 }
 
 func (e Entity) Remove{{ .Name }}(target Entity) {
