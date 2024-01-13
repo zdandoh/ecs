@@ -58,6 +58,13 @@ func BenchmarkSelectMatch(b *testing.B) {
 	}
 }
 
+func BenchmarkIntMap(b *testing.B) {
+	m := make(map[ecs.EntityID]uint64)
+	for n := 0; n < b.N; n++ {
+		m[ecs.EntityID(n/10)] = 45
+	}
+}
+
 func BenchmarkSelectUnmatched(b *testing.B) {
 	ecs.Reset()
 
@@ -139,6 +146,30 @@ func TestSelectSorted(t *testing.T) {
 	}, func(e ecs.Entity, hp *components.Health) {
 		fmt.Println(*hp)
 	})
+}
+
+func BenchmarkEntitySelect(b *testing.B) {
+	ecs.Reset()
+
+	for i := 0; i < 10000; i++ {
+		e := ecs.NewEntity()
+		e.SetPos(components.Pos{
+			X: 45,
+			Y: 3846,
+		})
+		e.SetVel(components.Vel{
+			X: 38456,
+			Y: 1234,
+		})
+	}
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		ecs.Select(func(e ecs.Entity, pos *components.Pos, vel *components.Vel) {
+			pos.X += vel.X
+			pos.Y += vel.Y
+		})
+	}
 }
 
 func BenchmarkEntityCreation2(b *testing.B) {
@@ -256,6 +287,69 @@ func TestSelectDead(t *testing.T) {
 	})
 	if c > 0 {
 		t.Fatal(c)
+	}
+}
+
+func TestRelationship(t *testing.T) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	apple := ecs.NewEntity()
+	gun := ecs.NewEntity()
+	egg := ecs.NewEntity()
+
+	e.SetHas(apple, components.Has{Count: 5})
+	e.SetHas(gun, components.Has{Count: 1})
+	e.SetHas(egg, components.Has{Count: 3})
+
+	e.SetLikes(apple)
+	e.SetLikes(gun)
+	e.SetLikes(egg)
+
+	egg.Kill()
+
+	count := 0
+	e.EachHas(func(e ecs.Entity, has *components.Has) {
+		count += has.Count
+	})
+	if count != 6 {
+		t.Fatal(count)
+	}
+
+	count = 0
+	e.EachLikes(func(e ecs.Entity) {
+		count++
+	})
+	if count != 2 {
+		t.Fatal(count)
+	}
+
+	if e.Likes(egg) {
+		t.Fatal()
+	}
+	if !e.Likes(gun) {
+		t.Fatal()
+	}
+
+	e.RemoveLikes(gun)
+	if e.Likes(gun) {
+		t.Fatal()
+	}
+}
+
+func BenchmarkRelationshipIter(b *testing.B) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	for i := 0; i < 10; i++ {
+		n := ecs.NewEntity()
+		e.SetLikes(n)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		e.EachLikes(func(e ecs.Entity) {
+		})
 	}
 }
 

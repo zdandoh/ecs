@@ -6,8 +6,14 @@ package {{ .Pkg }}
 
 type ComponentID [{{ .CompContainerCount }}]uint64
 
+{{ range .Relationships }}
+type rel{{ .Name }} struct {
+    rels map[uint64]comp.{{ .Name }}
+}
+{{ end }}
+
 {{ range .Comps }}
-var store{{ .Name }} [][]comp.{{ .Name }}{{ end }}
+var store{{ .Name }} [][]{{ cpkg . }}{{ .Name }}{{ end }}
 
 {{ range $i, $comp := .Comps }}
 var {{ $comp.Name }}ID = ComponentID{}
@@ -19,7 +25,7 @@ func init() {
 }
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {
+func (e Entity) {{ cprefix $c }}Set{{ .Name }}(c {{ cpkg . }}{{ .Name }}) {
     if !e.Alive() {
         return
     }
@@ -33,7 +39,7 @@ func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Remove{{ .Name }}() {
+func (e Entity) {{ cprefix $c }}Remove{{ .Name }}() {
     if !e.Alive() {
         return
     }
@@ -46,10 +52,81 @@ func (e Entity) Remove{{ .Name }}() {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Has{{ .Name }}() bool {
+func (e Entity) {{ cprefix $c }}Has{{ .Name }}() bool {
     if !e.Alive() {
         return false
     }
     return entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
+}
+{{ end }}
+
+{{ range .Relationships }}
+func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.{{ .Name }}{{ end }})) {
+    rel := e._{{ .Name }}()
+
+    if rel != nil {
+        deleted := false
+        for entID, relData := range rel.rels {
+            _ = relData
+            ent := entities[(entID >> 32) >> entityPageBits][(entID >> 32) % entityPageSize]
+            if ent.generation() != (entID & 0x00000000FFFFFFFF) {
+                delete(rel.rels, entID)
+                deleted = true
+                continue
+            }
+            each(ent, {{ if .HasData }}&relData{{ end }})
+            {{ if .HasData }}rel.rels[entID] = relData{{ end }}
+        }
+        if deleted && len(rel.rels) == 0 {
+            e._Remove{{ .Name }}()
+        }
+    }
+}
+
+func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Name }}{{ end }}) {
+    if !target.Alive() || !e.Alive() {
+        return
+    }
+    rel := e._{{ .Name }}()
+    if rel == nil {
+        e._Set{{ .Name }}(rel{{ .Name}}{rels: make(map[uint64]comp.{{ .Name }})})
+        rel = e._{{ .Name }}()
+    }
+
+    {{ if .HasData }}
+    rel.rels[target.ident] = data
+    {{ else }}
+    var zero comp.{{ .Name }}
+    rel.rels[target.ident] = zero
+    {{ end }}
+}
+
+func (e Entity) {{ .Name }}(target Entity) bool {
+    if !target.Alive() || !e.Alive() {
+        return false
+    }
+
+    rel := e._{{ .Name }}()
+    if rel == nil {
+        return false
+    }
+    _, ok := rel.rels[target.ident]
+    return ok
+}
+
+func (e Entity) Remove{{ .Name }}(target Entity) {
+    if !target.Alive() || !e.Alive() {
+        return
+    }
+
+    rel := e._{{ .Name }}()
+    if rel == nil {
+        return
+    }
+    delete(rel.rels, target.ident)
+
+    if len(rel.rels) == 0 {
+        e._Remove{{ .Name }}()
+    }
 }
 {{ end }}

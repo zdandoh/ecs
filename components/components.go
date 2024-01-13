@@ -35,3 +35,16 @@ type Complex struct {
 func (p Position) Dist(p2 Position) float64 {
 	return math.Sqrt(math.Pow(float64(p.X-p2.X), 2) + math.Pow(float64(p.Y-p2.Y), 2))
 }
+
+type Has struct {
+	Relationship struct{}
+	Count        int
+}
+
+type Likes struct {
+	Relationship struct{}
+}
+
+type Child struct {
+	Relationship struct{}
+}

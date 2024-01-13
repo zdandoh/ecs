@@ -17,8 +17,8 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
     i := 0
     switch selector.(type) {
     {{ range .Selects }}{{if not .EarlyStop}}
-    case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}):
-        Select(func(e Entity, {{ range $i, $arg := .Args }}arg{{ $i }} *comp.{{ $arg.Name }}, {{ end }}) {
+    case func(Entity, {{ range .Args }}*{{ cpkg .Comp }}{{ .Name }}, {{ end }}):
+        Select(func(e Entity, {{ range $i, $arg := .Args }}arg{{ $i }} *{{ cpkg .Comp }}{{ $arg.Name }}, {{ end }}) {
             sortSpace[i] = e
             i++
         })
@@ -32,7 +32,7 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
         entity := sortSpace[j]
         switch fun := selector.(type) {
         {{ range .Selects }}{{if not .EarlyStop}}
-        case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}):
+        case func(Entity, {{ range .Args }}*{{ cpkg .Comp }}{{ .Name }}, {{ end }}):
             fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id() >> entityPageBits][entity.id() % entityPageSize], {{ end }})
         {{ end }}{{ end }}
         }
@@ -48,7 +48,7 @@ func Select(selector interface{}) {
     {{ $containerCount := .CompContainerCount }}
     {{ range .Selects }}
     {{ $sel := . }}
-    case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
+    case func(Entity, {{ range .Args }}*{{ cpkg .Comp }}{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
         {{ range $i := makerange $containerCount }}
         const matchID{{ $i }} = {{ range $sel.Args }}{{ $mapindex := compmapindex .CompIndex }}{{ if eq $mapindex $i }}{{ compsubindex .CompIndex }} |{{ end }}{{ end }} 0
         {{ end }}

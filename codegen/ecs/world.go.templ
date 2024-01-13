@@ -25,7 +25,7 @@ func newEntityPage() {
     sortSpace = make([]Entity, entityCap + entityPageSize)
 
     {{ range .Comps }}
-    new{{ .Name }}Page := make([]comp.{{ .Name }}, entityPageSize)
+    new{{ .Name }}Page := make([]{{ cpkg . }}{{ .Name }}, entityPageSize)
     store{{ .Name }} = append(store{{ .Name }}, new{{ .Name }}Page)
     {{ end }}
     entityCap += entityPageSize
@@ -65,7 +65,7 @@ func NewEntity() Entity {
 }
 
 func Lookup(r entity.Ref) Entity {
-    return *(*Entity)(unsafe.Pointer(&r))
+    return Entity{ident: *(*uint64)(unsafe.Pointer(&r))}
 }
 
 func (e Entity) Is(other Entity) bool {

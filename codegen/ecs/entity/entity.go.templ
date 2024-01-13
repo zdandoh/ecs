@@ -4,7 +4,6 @@ package entity
 
 type Ref struct {
 	ident      uint64
-	components [{{ .CompContainerCount }}]uint64
 }
 
 func (r Ref) id() uint64 {
@@ -16,9 +15,9 @@ func (r Ref) generation() uint64 {
 }
 
 func (r Ref) Is(other Ref) bool {
-    return r.id() == other.id() && r.generation() == other.generation()
+    return r.ident == other.ident
 }
 
 func (r Ref) Zero() bool {
-    return r.id() == 0 && r.generation() == 0
+    return r.ident == 0
 }

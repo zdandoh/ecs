@@ -36,6 +36,18 @@ var templFuncs = map[string]interface{}{
 	"makerange": func(i int) []int {
 		return make([]int, i)
 	},
+	"cprefix": func(c Component) string {
+		if c.Hidden {
+			return "_"
+		}
+		return ""
+	},
+	"cpkg": func(c Component) string {
+		if c.Hidden {
+			return "rel"
+		}
+		return "comp."
+	},
 }
 
 type Ctx struct {
@@ -47,6 +59,8 @@ type Ctx struct {
 	CompContainerCount int
 	Selects            []Select
 	SelectCount        int
+	Relationships      []Relationship
+	RelCount           int
 }
 
 type structMember struct {
@@ -54,14 +68,28 @@ type structMember struct {
 	Type string
 }
 
+type Relationship struct {
+	Name    string
+	HasData bool
+}
+
 type Component struct {
 	Name          string
 	StructMembers []structMember
+	Hidden        bool
+}
+
+func (c Component) Prefix() string {
+	if c.Hidden {
+		return "_"
+	}
+	return ""
 }
 
 type SelectArg struct {
 	Name      string
 	CompIndex int
+	Comp      Component
 }
 
 type Select struct {
@@ -106,8 +134,9 @@ func main() {
 	subpackagePath := strings.Join(subpackages, "/")
 	modulePath := ModulePath(modData)
 
-	comps, compMap := findComponents(componentPkg)
-	selects := findSelects(systemPkg, compMap)
+	comps, compMap, relationships := findComponents(componentPkg)
+	fmt.Println(relationships)
+	selects := findSelects(systemPkg, compMap, comps)
 
 	context := &Ctx{
 		Pkg:                generatedPackage,
@@ -118,6 +147,8 @@ func main() {
 		CompContainerCount: int(math.Ceil(float64(len(comps)) / 64)),
 		Selects:            selects,
 		SelectCount:        len(selects),
+		Relationships:      relationships,
+		RelCount:           len(relationships),
 	}
 
 	err = setupPackage(context)
@@ -174,7 +205,7 @@ type foundSelect struct {
 	earlyReturn bool
 }
 
-func findSelects(path string, compNames map[string]int) []Select {
+func findSelects(path string, compNames map[string]int, components []Component) []Select {
 	fset := token.NewFileSet()
 	dir, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
@@ -269,6 +300,7 @@ func findSelects(path string, compNames map[string]int) []Select {
 			args = append(args, SelectArg{
 				Name:      compName,
 				CompIndex: compNames[compName],
+				Comp:      components[compNames[compName]],
 			})
 		}
 		uniqueSelects = append(uniqueSelects, Select{
@@ -279,7 +311,7 @@ func findSelects(path string, compNames map[string]int) []Select {
 	return uniqueSelects
 }
 
-func findComponents(path string) ([]Component, map[string]int) {
+func findComponents(path string) ([]Component, map[string]int, []Relationship) {
 	fset := token.NewFileSet()
 	dir, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
@@ -287,6 +319,7 @@ func findComponents(path string) ([]Component, map[string]int) {
 	}
 
 	var components []Component
+	var relationships []Relationship
 	for _, pkg := range dir {
 		for _, fi := range pkg.Files {
 			ast.Inspect(fi, func(n ast.Node) bool {
@@ -301,14 +334,20 @@ func findComponents(path string) ([]Component, map[string]int) {
 					for _, field := range structType.Fields.List {
 						var typeString strings.Builder
 						_ = printer.Fprint(&typeString, fset, field.Type)
-						structMembers = append(structMembers, structMember{
+						member := structMember{
 							Name: field.Names[0].Name,
 							Type: typeString.String(),
-						})
+						}
+						structMembers = append(structMembers, member)
 					}
 				}
 
-				components = append(components, Component{typeSpec.Name.Name, structMembers})
+				comp := Component{Name: typeSpec.Name.Name, StructMembers: structMembers}
+				if len(structMembers) > 0 && structMembers[0].Name == "Relationship" && structMembers[0].Type == "struct{}" {
+					relationships = append(relationships, Relationship{Name: typeSpec.Name.Name, HasData: len(structMembers) > 1})
+					comp.Hidden = true
+				}
+				components = append(components, comp)
 				return true
 			})
 		}
@@ -318,7 +357,7 @@ func findComponents(path string) ([]Component, map[string]int) {
 	for i, component := range components {
 		compMap[component.Name] = i
 	}
-	return components, compMap
+	return components, compMap, relationships
 }
 
 func recursiveCopy(fs embed.FS, dir string, packageName string, context *Ctx) error {

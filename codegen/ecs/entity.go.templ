@@ -58,7 +58,7 @@ func (e Entity) generation() uint64 {
 }
 
 {{ range $i, $c := .Comps }}
-func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
+func (e Entity) {{ cprefix $c }}{{ $c.Name }}() *{{ cpkg $c }}{{ $c.Name }} {
     if !e.Alive() {
         return nil
     }
@@ -70,9 +70,9 @@ func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
-func (e Entity) Default{{ $c.Name }}(def comp.{{ $c.Name }}) *comp.{{ $c.Name }} {
-    if !e.Has{{ $c.Name }}() {
-        e.Set{{ $c.Name }}(def)
+func (e Entity) {{ cprefix $c }}Default{{ $c.Name }}(def {{ cpkg $c }}{{ $c.Name }}) *{{ cpkg $c }}{{ $c.Name }} {
+    if !e.{{ cprefix $c }}Has{{ $c.Name }}() {
+        e.{{ cprefix $c }}Set{{ $c.Name }}(def)
     }
 
     return &store{{ $c.Name }}[e.id() >> entityPageBits][e.id() % entityPageSize]
@@ -83,8 +83,8 @@ func (e Entity) Default{{ $c.Name }}(def comp.{{ $c.Name }}) *comp.{{ $c.Name }}
 func (e Entity) Components() []interface{} {
     comps := make([]interface{}, 0)
     {{ range .Comps }}
-    if e.Has{{ .Name }}() {
-        comps = append(comps, *e.{{ .Name }}())
+    if e.{{ cprefix . }}Has{{ .Name }}() {
+        comps = append(comps, *e.{{ cprefix . }}{{ .Name }}())
     }
     {{ end}}
     return comps
