@@ -337,11 +337,29 @@ func TestRelationship(t *testing.T) {
 	}
 }
 
+func BenchmarkRelationshipBuild(b *testing.B) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	ents := make([]ecs.Entity, 0)
+	for i := 0; i < 1000; i++ {
+		n := ecs.NewEntity()
+		ents = append(ents, n)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, ent := range ents {
+			e.SetLikes(ent)
+		}
+	}
+}
+
 func BenchmarkRelationshipIter(b *testing.B) {
 	ecs.Reset()
 
 	e := ecs.NewEntity()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1000; i++ {
 		n := ecs.NewEntity()
 		e.SetLikes(n)
 	}

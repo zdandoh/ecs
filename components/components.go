@@ -44,7 +44,3 @@ type Has struct {
 type Likes struct {
 	Relationship struct{}
 }
-
-type Child struct {
-	Relationship struct{}
-}

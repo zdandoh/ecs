@@ -3,12 +3,20 @@
 package {{ .Pkg }}
 
 {{ .CompImport }}
+{{ if .RelCount }}
+import "slices"
+{{ end }}
 
 type ComponentID [{{ .CompContainerCount }}]uint64
 
 {{ range .Relationships }}
+type rel{{ .Name }}Entry struct {
+    ident uint64
+    data comp.{{ .Name }}
+}
+
 type rel{{ .Name }} struct {
-    rels map[uint64]comp.{{ .Name }}
+    rels []rel{{ .Name }}Entry
 }
 {{ end }}
 
@@ -65,19 +73,22 @@ func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.
     rel := e._{{ .Name }}()
 
     if rel != nil {
-        deleted := false
-        for entID, relData := range rel.rels {
-            _ = relData
-            ent := entities[(entID >> 32) >> entityPageBits][(entID >> 32) % entityPageSize]
-            if ent.generation() != (entID & 0x00000000FFFFFFFF) {
-                delete(rel.rels, entID)
-                deleted = true
+        cleanup := false
+        for i, entry := range rel.rels {
+            ent := entities[(entry.ident >> 32) >> entityPageBits][(entry.ident >> 32) % entityPageSize]
+            if ent.generation() != (entry.ident & 0x00000000FFFFFFFF) {
+                rel.rels[i].ident = 0
+                cleanup = true
                 continue
             }
-            each(ent, {{ if .HasData }}&relData{{ end }})
-            {{ if .HasData }}rel.rels[entID] = relData{{ end }}
+            each(ent, {{ if .HasData }}&entry.data{{ end }})
         }
-        if deleted && len(rel.rels) == 0 {
+        if cleanup {
+            rel.rels = slices.DeleteFunc(rel.rels, func(ent rel{{ .Name }}Entry) bool {
+                return ent.ident == 0
+            })
+        }
+        if len(rel.rels) == 0 {
             e._Remove{{ .Name }}()
         }
     }
@@ -89,16 +100,18 @@ func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Nam
     }
     rel := e._{{ .Name }}()
     if rel == nil {
-        e._Set{{ .Name }}(rel{{ .Name}}{rels: make(map[uint64]comp.{{ .Name }})})
+        e._Set{{ .Name }}(rel{{ .Name}}{rels: nil})
         rel = e._{{ .Name }}()
     }
 
-    {{ if .HasData }}
-    rel.rels[target.ident] = data
-    {{ else }}
-    var zero comp.{{ .Name }}
-    rel.rels[target.ident] = zero
-    {{ end }}
+    newEnt := rel{{ .Name }}Entry{ident: target.ident, {{ if .HasData }}data: data{{ end }}}
+    index, found := slices.BinarySearchFunc(rel.rels, newEnt, func(a, b rel{{ .Name }}Entry) int {
+        return int(a.ident >> 32) - int(b.ident >> 32)
+    })
+    if found {
+        return
+    }
+    rel.rels = slices.Insert(rel.rels, index, newEnt)
 }
 
 func (e Entity) {{ .Name }}(target Entity) bool {
@@ -110,8 +123,11 @@ func (e Entity) {{ .Name }}(target Entity) bool {
     if rel == nil {
         return false
     }
-    _, ok := rel.rels[target.ident]
-    return ok
+
+    _, found := slices.BinarySearchFunc(rel.rels, rel{{ .Name }}Entry{ident: target.ident}, func(a, b rel{{ .Name }}Entry) int {
+        return int(a.ident >> 32) - int(b.ident >> 32)
+    })
+    return found
 }
 
 func (e Entity) Remove{{ .Name }}(target Entity) {
@@ -123,7 +139,14 @@ func (e Entity) Remove{{ .Name }}(target Entity) {
     if rel == nil {
         return
     }
-    delete(rel.rels, target.ident)
+
+    index, found := slices.BinarySearchFunc(rel.rels, rel{{ .Name }}Entry{ident: target.ident}, func(a, b rel{{ .Name }}Entry) int {
+        return int(a.ident >> 32) - int(b.ident >> 32)
+    })
+    if !found {
+        return
+    }
+    rel.rels = slices.Delete(rel.rels, index, index + 1)
 
     if len(rel.rels) == 0 {
         e._Remove{{ .Name }}()

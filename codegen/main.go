@@ -135,7 +135,6 @@ func main() {
 	modulePath := ModulePath(modData)
 
 	comps, compMap, relationships := findComponents(componentPkg)
-	fmt.Println(relationships)
 	selects := findSelects(systemPkg, compMap, comps)
 
 	context := &Ctx{
