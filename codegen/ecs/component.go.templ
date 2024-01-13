@@ -56,6 +56,9 @@ func (e Entity) {{ cprefix $c }}Remove{{ .Name }}() {
         pageHeaders[e.id() >> entityPageBits][{{ $i }}]--
     }
     entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
+    // Zero any pointers to allow the GC to free memory
+    var zero {{ cpkg $c }}{{ .Name }}
+    store{{ .Name }}[e.id() >> entityPageBits][e.id() % entityPageSize] = zero
 }
 {{ end }}
 
@@ -151,5 +154,9 @@ func (e Entity) Remove{{ .Name }}(target Entity) {
     if len(rel.rels) == 0 {
         e._Remove{{ .Name }}()
     }
+}
+
+func (e Entity) Any{{ .Name }}() bool {
+    return e._Has{{ .Name }}()
 }
 {{ end }}

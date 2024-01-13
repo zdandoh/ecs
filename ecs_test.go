@@ -335,6 +335,13 @@ func TestRelationship(t *testing.T) {
 	if e.Likes(gun) {
 		t.Fatal()
 	}
+
+	single := ecs.NewEntity()
+	single.Likes(gun)
+	single.RemoveLikes(gun)
+	if single.AnyLikes() {
+		t.Fatal()
+	}
 }
 
 func BenchmarkRelationshipBuild(b *testing.B) {
