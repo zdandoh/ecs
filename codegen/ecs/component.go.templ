@@ -16,6 +16,7 @@ type rel{{ .Name }}Entry struct {
 }
 
 type rel{{ .Name }} struct {
+    deletes int
     rels []rel{{ .Name }}Entry
 }
 {{ end }}
@@ -98,6 +99,7 @@ func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.
                 return ent.ident == 0
             })
         }
+        rel.deletes = 0
         if len(rel.rels) == 0 {
             e._Remove{{ .Name }}()
         }
@@ -160,9 +162,11 @@ func (e Entity) Remove{{ .Name }}(target Entity) {
     if !found {
         return
     }
-    rel.rels = slices.Delete(rel.rels, index, index + 1)
+    // Only mark for deletion, don't modify slice
+    rel.rels[index].ident = 0
+    rel.deletes++
 
-    if len(rel.rels) == 0 {
+    if len(rel.rels) == 0 || len(rel.rels) == rel.deletes {
         e._Remove{{ .Name }}()
     }
 }
