@@ -13,8 +13,7 @@ type EntityID uint64
 type ComponentMapping [{{ .CompContainerCount }}]uint64
 
 type Entity struct {
-	id         EntityID
-	generation uint64
+    ident uint64
 	components ComponentMapping
 }
 
@@ -29,25 +28,33 @@ func (e Entity) Kill() {
         return
     }
 
-    for _, compPart := range entities[e.id >> entityPageBits][e.id % entityPageSize].components {
+    for _, compPart := range entities[e.id() >> entityPageBits][e.id() % entityPageSize].components {
         end := 64 - bits.LeadingZeros64(compPart)
         start := bits.TrailingZeros64(compPart)
         for i := start; i < end; i++ {
-            pageHeaders[e.id>>entityPageBits][i] -= uint16((compPart >> i) & 1)
+            pageHeaders[e.id()>>entityPageBits][i] -= uint16((compPart >> i) & 1)
         }
     }
 
-	freeList = append(freeList, e.id)
-	entities[e.id >> entityPageBits][e.id % entityPageSize].generation++
-	entities[e.id >> entityPageBits][e.id % entityPageSize].components = ComponentMapping{}
+	freeList = append(freeList, e.ID())
+	entities[e.id() >> entityPageBits][e.id() % entityPageSize].ident++
+	entities[e.id() >> entityPageBits][e.id() % entityPageSize].components = ComponentMapping{}
 }
 
 func (e Entity) Alive() bool {
-    return e.generation == entities[e.id >> entityPageBits][e.id % entityPageSize].generation
+    return e.generation() == entities[e.id() >> entityPageBits][e.id() % entityPageSize].generation()
 }
 
 func (e Entity) ID() EntityID {
-    return e.id
+    return EntityID(e.id())
+}
+
+func (e Entity) id() uint64 {
+    return e.ident >> 32
+}
+
+func (e Entity) generation() uint64 {
+    return e.ident & 0x00000000FFFFFFFF
 }
 
 {{ range $i, $c := .Comps }}
@@ -55,8 +62,8 @@ func (e Entity) {{ $c.Name }}() *comp.{{ $c.Name }} {
     if !e.Alive() {
         return nil
     }
-    if entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
-        return &store{{ $c.Name }}[e.id >> entityPageBits][e.id % entityPageSize]
+    if entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
+        return &store{{ $c.Name }}[e.id() >> entityPageBits][e.id() % entityPageSize]
     }
     return nil
 }
@@ -68,7 +75,7 @@ func (e Entity) Default{{ $c.Name }}(def comp.{{ $c.Name }}) *comp.{{ $c.Name }}
         e.Set{{ $c.Name }}(def)
     }
 
-    return &store{{ $c.Name }}[e.id >> entityPageBits][e.id % entityPageSize]
+    return &store{{ $c.Name }}[e.id() >> entityPageBits][e.id() % entityPageSize]
 }
 {{ end }}
 

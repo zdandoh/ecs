@@ -33,7 +33,7 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
         switch fun := selector.(type) {
         {{ range .Selects }}{{if not .EarlyStop}}
         case func(Entity, {{ range .Args }}*comp.{{ .Name }}, {{ end }}):
-            fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
+            fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id() >> entityPageBits][entity.id() % entityPageSize], {{ end }})
         {{ end }}{{ end }}
         }
     }
@@ -67,7 +67,7 @@ func Select(selector interface{}) {
                 {{ end }}
 
                 if {{ range $i := makerange $containerCount }}matchID{{ $i }} & entity.components[{{ $i }}] == matchID{{ $i }} &&{{ end }} true {
-                    {{ if .EarlyStop }}cont = {{ end }}fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id >> entityPageBits][entity.id % entityPageSize], {{ end }})
+                    {{ if .EarlyStop }}cont = {{ end }}fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id() >> entityPageBits][entity.id() % entityPageSize], {{ end }})
                     {{ if .EarlyStop }}if !cont { return }{{ end }}
                 }
             }

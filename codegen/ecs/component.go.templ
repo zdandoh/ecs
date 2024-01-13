@@ -24,11 +24,11 @@ func (e Entity) Set{{ .Name }}(c comp.{{ .Name }}) {
         return
     }
 
-    if entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} == 0 {
-        pageHeaders[e.id >> entityPageBits][{{ $i }}]++
+    if entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} == 0 {
+        pageHeaders[e.id() >> entityPageBits][{{ $i }}]++
     }
-    entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
-    store{{ .Name }}[e.id >> entityPageBits][e.id % entityPageSize] = c
+    entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
+    store{{ .Name }}[e.id() >> entityPageBits][e.id() % entityPageSize] = c
 }
 {{ end }}
 
@@ -38,10 +38,10 @@ func (e Entity) Remove{{ .Name }}() {
         return
     }
 
-    if entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
-        pageHeaders[e.id >> entityPageBits][{{ $i }}]--
+    if entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
+        pageHeaders[e.id() >> entityPageBits][{{ $i }}]--
     }
-    entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
+    entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
 }
 {{ end }}
 
@@ -50,6 +50,6 @@ func (e Entity) Has{{ .Name }}() bool {
     if !e.Alive() {
         return false
     }
-    return entities[e.id >> entityPageBits][e.id % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
+    return entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0
 }
 {{ end }}

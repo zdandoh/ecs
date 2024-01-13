@@ -3,15 +3,22 @@
 package entity
 
 type Ref struct {
-	id         uint64
-	generation uint64
+	ident      uint64
 	components [{{ .CompContainerCount }}]uint64
 }
 
+func (r Ref) id() uint64 {
+    return r.ident >> 32
+}
+
+func (r Ref) generation() uint64 {
+    return r.ident & 0x00000000FFFFFFFF
+}
+
 func (r Ref) Is(other Ref) bool {
-    return r.id == other.id && r.generation == other.generation
+    return r.id() == other.id() && r.generation() == other.generation()
 }
 
 func (r Ref) Zero() bool {
-    return r.id == 0 && r.generation == 0
+    return r.id() == 0 && r.generation() == 0
 }
