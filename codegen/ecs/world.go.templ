@@ -4,7 +4,6 @@ package {{ .Pkg }}
 
 {{ .CompImport }}
 import "{{ .FullPkg }}/entity"
-import "unsafe"
 
 var currEntities = 0
 var entityCap = 0
@@ -31,6 +30,7 @@ func newEntityPage() {
     entityCap += entityPageSize
 }
 
+// Reset deletes all entities, components, and state of the current ECS.
 func Reset() {
     entities = nil
     freeList = nil
@@ -44,6 +44,7 @@ func Reset() {
     newEntityPage()
 }
 
+// NewEntity creates a new entity and returns a handle to it.
 func NewEntity() Entity {
     var retID EntityID
     if len(freeList) == 0 {
@@ -64,10 +65,12 @@ func NewEntity() Entity {
 	return entities[retID >> entityPageBits][retID % entityPageSize]
 }
 
+// Lookup converts an entity reference into an Entity that can be used for component lookups and ECS operations.
 func Lookup(r entity.Ref) Entity {
-    return Entity{ident: *(*uint64)(unsafe.Pointer(&r))}
+    return Entity{ident: uint64(r)}
 }
 
+// Is returns true if an entity handle represents the same entity as the provided entity.
 func (e Entity) Is(other Entity) bool {
     return e.ident == other.ident
 }
@@ -76,10 +79,12 @@ func (e Entity) Zero() bool {
     return e.ident == 0
 }
 
+// Ref obtains a reference for the given entity
 func (e Entity) Ref() entity.Ref {
-    return *(*entity.Ref)(unsafe.Pointer(&e))
+    return entity.Ref(e.ident)
 }
 
+// EntityCount returns the maximum number of entities that have been created within the ECS.
 func EntityCount() int {
     return currEntities
 }

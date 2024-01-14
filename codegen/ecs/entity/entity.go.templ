@@ -2,22 +2,23 @@
 
 package entity
 
-type Ref struct {
-	ident      uint64
-}
+// Ref is a reference to an entity. Its primary purpose is to allow for entity references in component data
+// without creating import cycles.
+type Ref uint64
 
 func (r Ref) id() uint64 {
-    return r.ident >> 32
+    return uint64(r) >> 32
 }
 
 func (r Ref) generation() uint64 {
-    return r.ident & 0x00000000FFFFFFFF
+    return uint64(r) & 0x00000000FFFFFFFF
 }
 
+// Is returns true if an entity reference represents the same entity as the provided entity.
 func (r Ref) Is(other Ref) bool {
-    return r.ident == other.ident
+    return r == other
 }
 
 func (r Ref) Zero() bool {
-    return r.ident == 0
+    return r == 0
 }

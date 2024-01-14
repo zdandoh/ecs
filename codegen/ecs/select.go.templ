@@ -39,6 +39,10 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
     }
 }
 
+// Select accepts a selector function of the form func(e Entity, c *component.$Name, ...) and calls the function for
+// each entity that contains the matching component set. The component pointers passed to the selector function
+// can be manipulated directly within the callback, and are valid for the lifetime of the entity. Component pointers
+// should not be stored outside the ECS.
 func Select(selector interface{}) {
     cont := true
     _ = cont

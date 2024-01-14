@@ -25,6 +25,7 @@ type rel{{ .Name }} struct {
 var store{{ .Name }} [][]{{ cpkg . }}{{ .Name }}{{ end }}
 
 {{ range $i, $comp := .Comps }}
+// {{ $comp.Name }}ID is a unique identifier for the {{ .Name }} component.
 var {{ $comp.Name }}ID = ComponentID{}
 {{ end }}
 
@@ -34,6 +35,7 @@ func init() {
 }
 
 {{ range $i, $c := .Comps }}
+// Set{{ .Name }} sets the {{ .Name }} component to the provided value for an entity.
 func (e Entity) {{ cprefix $c }}Set{{ .Name }}(c {{ cpkg . }}{{ .Name }}) {
     if !e.Alive() {
         return
@@ -48,6 +50,7 @@ func (e Entity) {{ cprefix $c }}Set{{ .Name }}(c {{ cpkg . }}{{ .Name }}) {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
+// Remove{{ .Name }} removes the {{ .Name }} component from the entity.
 func (e Entity) {{ cprefix $c }}Remove{{ .Name }}() {
     if !e.Alive() {
         return
@@ -64,6 +67,7 @@ func (e Entity) {{ cprefix $c }}Remove{{ .Name }}() {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
+// Has{{ .Name }} returns true if the given entity has {{ .Name }} set.
 func (e Entity) {{ cprefix $c }}Has{{ .Name }}() bool {
     if !e.Alive() {
         return false
@@ -73,6 +77,9 @@ func (e Entity) {{ cprefix $c }}Has{{ .Name }}() bool {
 {{ end }}
 
 {{ range .Relationships }}
+// Each{{ .Name }} calls the provided callback for each {{ .Name }} relationship associated with the entity.
+// It automatically prunes entities that have died since the last call to Each{{ .Name }}. It returns true
+// if any dead entities are removed during iteration.
 func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.{{ .Name }}{{ end }})) bool {
     rel := e._{{ .Name }}()
 
@@ -110,6 +117,9 @@ func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.
     return cleanup
 }
 
+// Set{{ .Name }} associates the given target entity with the entity. If the component contains data
+// that should be associated with the relationship, that data is stored alongside the association,
+// replacing any data that previously existed. Set{{ .Name }} returns true if a new relationship is created.
 func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Name }}{{ end }}) bool {
     if !target.Alive() || !e.Alive() {
         return false
@@ -133,6 +143,9 @@ func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Nam
     return true
 }
 
+// {{ .Name }} returns true if a {{ .Name }} relationship exists with the given entity. If the relationship
+// has associated data, a pointer to that data is returned. The pointer is invalidated by any subsequent modifications
+// to the {{ .Name }} relationship of the entity.
 func (e Entity) {{ .Name }}(target Entity) {{ if .HasData }}*comp.{{ .Name }}{{ else }}bool{{ end }} {
     if !target.Alive() || !e.Alive() {
         return {{ if .HasData }}nil{{ else }}false{{ end }}
@@ -152,6 +165,8 @@ func (e Entity) {{ .Name }}(target Entity) {{ if .HasData }}*comp.{{ .Name }}{{ 
     return {{ if .HasData }}&rel.rels[index].data{{ else }}true{{ end }}
 }
 
+// Remove{{ .Name }} removes the {{ .Name }} association between the two entities. If a relationship was removed,
+// Remove{{ .Name }} returns true.
 func (e Entity) Remove{{ .Name }}(target Entity) bool {
     if !target.Alive() || !e.Alive() {
         return false
@@ -179,6 +194,7 @@ func (e Entity) Remove{{ .Name }}(target Entity) bool {
     return true
 }
 
+// Any{{ .Name }} returns true if the entity has any instances of the {{ .Name }} relationship.
 func (e Entity) Any{{ .Name }}() bool {
     return e._Has{{ .Name }}()
 }

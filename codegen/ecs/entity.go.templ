@@ -23,6 +23,8 @@ var freeList []EntityID
 var pageHeaders []pageHeader
 var entities [][]Entity
 
+// Kill makes the entity eligible for reuse and prevents any subsequent modifications to
+// the entity.
 func (e Entity) Kill() {
     if !e.Alive() {
         return
@@ -41,10 +43,12 @@ func (e Entity) Kill() {
 	entities[e.id() >> entityPageBits][e.id() % entityPageSize].components = ComponentMapping{}
 }
 
+// Alive returns true if the given entity is alive.
 func (e Entity) Alive() bool {
     return e.generation() == entities[e.id() >> entityPageBits][e.id() % entityPageSize].generation()
 }
 
+// ID returns the unique identifier of the entity.
 func (e Entity) ID() EntityID {
     return EntityID(e.id())
 }
@@ -58,6 +62,8 @@ func (e Entity) generation() uint64 {
 }
 
 {{ range $i, $c := .Comps }}
+// {{ $c.Name }} returns a pointer to the {{ .Name }} component. This pointer is only valid for the
+// lifetime of the entity. Component pointers should not be stored outside the ECS.
 func (e Entity) {{ cprefix $c }}{{ $c.Name }}() *{{ cpkg $c }}{{ $c.Name }} {
     if !e.Alive() {
         return nil
@@ -70,6 +76,7 @@ func (e Entity) {{ cprefix $c }}{{ $c.Name }}() *{{ cpkg $c }}{{ $c.Name }} {
 {{ end }}
 
 {{ range $i, $c := .Comps }}
+// {{ .Name }}Default sets the {{ .Name }} component to the provided value if it is not already set.
 func (e Entity) {{ cprefix $c }}Default{{ $c.Name }}(def {{ cpkg $c }}{{ $c.Name }}) *{{ cpkg $c }}{{ $c.Name }} {
     if !e.{{ cprefix $c }}Has{{ $c.Name }}() {
         e.{{ cprefix $c }}Set{{ $c.Name }}(def)
