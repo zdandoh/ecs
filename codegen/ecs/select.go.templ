@@ -40,9 +40,13 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
 }
 
 // Select accepts a selector function of the form func(e Entity, c *component.$Name, ...) and calls the function for
-// each entity that contains the matching component set. The component pointers passed to the selector function
+// each entity that has the matching component set. The component pointers passed to the selector function
 // can be manipulated directly within the callback, and are valid for the lifetime of the entity. Component pointers
 // should not be stored outside the ECS.
+// Select can also match up to one relationship. To match relationships, pass a selector function of the form
+// func(e Entity, target Entity, r *component.$RelationshipName, c *component.$Name, ...).
+// The selector will be called for relationship attached to entity e with target entity e, along with any matching
+// component data that e has.
 func Select(selector interface{}) {
     cont := true
     _ = cont
@@ -52,7 +56,7 @@ func Select(selector interface{}) {
     {{ $containerCount := .CompContainerCount }}
     {{ range .Selects }}
     {{ $sel := . }}
-    case func(Entity, {{ range .Args }}*{{ cpkg .Comp }}{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
+    case func(Entity, {{ range .Args }}{{ if .Relationship }}Entity,{{ end }} *comp.{{ .Name }}, {{ end }}) {{ if .EarlyStop }}bool{{ end }}:
         {{ range $i := makerange $containerCount }}
         const matchID{{ $i }} = {{ range $sel.Args }}{{ $mapindex := compmapindex .CompIndex }}{{ if eq $mapindex $i }}{{ compsubindex .CompIndex }} |{{ end }}{{ end }} 0
         {{ end }}
@@ -71,8 +75,15 @@ func Select(selector interface{}) {
                 {{ end }}
 
                 if {{ range $i := makerange $containerCount }}matchID{{ $i }} & entity.components[{{ $i }}] == matchID{{ $i }} &&{{ end }} true {
+                    {{ $rel := .Relationship }}
+                    {{ if .Relationship }}
+                    entity.Each{{ .Relationship.Name }}(func(target Entity, {{ if $rel.HasData }}data *comp.{{ .Relationship.Name }}{{ end }}) {
+                        fun(entity, {{ range .Args }}{{ if .Relationship }}target, {{ if $rel.HasData }}data{{ else }}nil{{ end }}{{ else }}&store{{ .Name }}[entity.id() >> entityPageBits][entity.id() % entityPageSize]{{ end }}, {{ end }})
+                    })
+                    {{ else }}
                     {{ if .EarlyStop }}cont = {{ end }}fun(entity, {{ range .Args }}&store{{ .Name }}[entity.id() >> entityPageBits][entity.id() % entityPageSize], {{ end }})
                     {{ if .EarlyStop }}if !cont { return }{{ end }}
+                    {{ end }}
                 }
             }
 

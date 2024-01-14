@@ -99,7 +99,7 @@ func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.
         origSlice := rel.rels
         each(ent, {{ if .HasData }}&rel.rels[i].data{{ end }})
         // Copy any mutations made with the passed pointer if the slice changes
-        if cap(origSlice) != cap(rel.rels) && origSlice[i].ident == rel.rels[i].ident {
+        if cap(origSlice) != cap(rel.rels) && len(rel.rels) > i && origSlice[i].ident == rel.rels[i].ident {
             rel.rels[i] = origSlice[i]
         }
     }

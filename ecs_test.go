@@ -365,6 +365,28 @@ func TestRelationshipDanglingRef(t *testing.T) {
 	}
 }
 
+func BenchmarkRelationshipSelect(b *testing.B) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	apple := ecs.NewEntity()
+	dog := ecs.NewEntity()
+	e.SetHas(apple, components.Has{Count: 5})
+	e.SetHas(dog, components.Has{Count: 3})
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		count := 0
+		ecs.Select(func(e ecs.Entity, target ecs.Entity, has *components.Has) {
+			count += has.Count
+		})
+		if count != 8 {
+			b.Fatal(count)
+		}
+	}
+}
+
 func BenchmarkRelationshipBuild(b *testing.B) {
 	ecs.Reset()
 

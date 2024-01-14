@@ -37,13 +37,13 @@ var templFuncs = map[string]interface{}{
 		return make([]int, i)
 	},
 	"cprefix": func(c Component) string {
-		if c.Hidden {
+		if c.Relationship {
 			return "_"
 		}
 		return ""
 	},
 	"cpkg": func(c Component) string {
-		if c.Hidden {
+		if c.Relationship {
 			return "rel"
 		}
 		return "comp."
@@ -76,25 +76,20 @@ type Relationship struct {
 type Component struct {
 	Name          string
 	StructMembers []structMember
-	Hidden        bool
-}
-
-func (c Component) Prefix() string {
-	if c.Hidden {
-		return "_"
-	}
-	return ""
+	Relationship  bool
 }
 
 type SelectArg struct {
-	Name      string
-	CompIndex int
-	Comp      Component
+	Name         string
+	CompIndex    int
+	Comp         Component
+	Relationship bool
 }
 
 type Select struct {
-	Args      []SelectArg
-	EarlyStop bool
+	Args         []SelectArg
+	Relationship *Relationship
+	EarlyStop    bool
 }
 
 func main() {
@@ -135,7 +130,7 @@ func main() {
 	modulePath := ModulePath(modData)
 
 	comps, compMap, relationships := findComponents(componentPkg)
-	selects := findSelects(systemPkg, compMap, comps)
+	selects := findSelects(systemPkg, compMap, comps, relationships)
 
 	context := &Ctx{
 		Pkg:                generatedPackage,
@@ -199,23 +194,28 @@ func ModulePath(mod []byte) string {
 	return "" // missing module path
 }
 
-type foundSelect struct {
-	compNames   []string
-	earlyReturn bool
-}
-
-func findSelects(path string, compNames map[string]int, components []Component) []Select {
+func findSelects(path string, compNames map[string]int, components []Component, relationships []Relationship) []Select {
 	fset := token.NewFileSet()
 	dir, err := parser.ParseDir(fset, path, nil, parser.ParseComments)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	selects := make(map[string]foundSelect)
+	selects := make(map[string]Select)
 
 	// Inject at least one select to avoid unuse import errors in the generated select package
 	for firstComponent, _ := range compNames {
-		selects[firstComponent] = foundSelect{compNames: []string{firstComponent}, earlyReturn: false}
+		index := compNames[firstComponent]
+		comp := components[index]
+		if comp.Relationship {
+			continue
+		}
+		selects[firstComponent+","] = Select{Args: []SelectArg{{
+			Name:         firstComponent,
+			CompIndex:    index,
+			Comp:         comp,
+			Relationship: false,
+		}}}
 		break
 	}
 
@@ -260,32 +260,71 @@ func findSelects(path string, compNames map[string]int, components []Component) 
 					return true
 				}
 
-				var comps []string
+				var args []SelectArg
+				foundRelationship := false
+				completedRelationship := ""
 				for _, param := range funcType.Params.List[1:] {
 					switch paramT := param.Type.(type) {
 					case *ast.Ident:
 						return true
 					case *ast.SelectorExpr:
+						if paramT.Sel.Name == "Entity" && completedRelationship == "" {
+							foundRelationship = true
+							continue
+						}
 						return true
 					case *ast.StarExpr:
 						switch startT := paramT.X.(type) {
 						case *ast.Ident:
 							return true
 						case *ast.SelectorExpr:
-							_, ok := compNames[startT.Sel.Name]
+							compIdx, ok := compNames[startT.Sel.Name]
 							if !ok {
 								return true
 							}
-							comps = append(comps, startT.Sel.Name)
+							comp := components[compIdx]
+							if !comp.Relationship && foundRelationship {
+								return true
+							}
+							if comp.Relationship && !foundRelationship {
+								return true
+							}
+							args = append(args, SelectArg{
+								Name: startT.Sel.Name, CompIndex: compIdx, Comp: comp, Relationship: foundRelationship,
+							})
+							if foundRelationship {
+								completedRelationship = startT.Sel.Name
+							}
+							foundRelationship = false
 						}
 					}
 				}
-
-				extraKey := ""
-				if earlyReturn {
-					extraKey = ",early_return"
+				if foundRelationship && completedRelationship != "" {
+					return true
 				}
-				selects[strings.Join(comps, ",")+extraKey] = foundSelect{compNames: comps, earlyReturn: earlyReturn}
+
+				key := &strings.Builder{}
+				for _, arg := range args {
+					key.WriteString(arg.Name + ",")
+				}
+				if earlyReturn {
+					key.WriteString("early_return,")
+				}
+				if len(args) == 0 {
+					return true
+				}
+
+				newSel := Select{
+					Args:      args,
+					EarlyStop: earlyReturn,
+				}
+				if completedRelationship != "" {
+					relIndex := slices.IndexFunc(relationships, func(r Relationship) bool {
+						return r.Name == completedRelationship
+					})
+					newSel.Relationship = &relationships[relIndex]
+				}
+				selects[key.String()] = newSel
 
 				return true
 			})
@@ -294,18 +333,7 @@ func findSelects(path string, compNames map[string]int, components []Component) 
 
 	var uniqueSelects []Select
 	for _, val := range selects {
-		args := make([]SelectArg, 0)
-		for _, compName := range val.compNames {
-			args = append(args, SelectArg{
-				Name:      compName,
-				CompIndex: compNames[compName],
-				Comp:      components[compNames[compName]],
-			})
-		}
-		uniqueSelects = append(uniqueSelects, Select{
-			Args:      args,
-			EarlyStop: val.earlyReturn,
-		})
+		uniqueSelects = append(uniqueSelects, val)
 	}
 	return uniqueSelects
 }
@@ -344,7 +372,7 @@ func findComponents(path string) ([]Component, map[string]int, []Relationship) {
 				comp := Component{Name: typeSpec.Name.Name, StructMembers: structMembers}
 				if len(structMembers) > 0 && structMembers[0].Name == "Relationship" && structMembers[0].Type == "struct{}" {
 					relationships = append(relationships, Relationship{Name: typeSpec.Name.Name, HasData: len(structMembers) > 1})
-					comp.Hidden = true
+					comp.Relationship = true
 				}
 				components = append(components, comp)
 				return true
