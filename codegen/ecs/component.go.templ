@@ -73,42 +73,46 @@ func (e Entity) {{ cprefix $c }}Has{{ .Name }}() bool {
 {{ end }}
 
 {{ range .Relationships }}
-func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.{{ .Name }}{{ end }})) {
+func (e Entity) Each{{ .Name }}(each func(e Entity, {{ if .HasData }}data *comp.{{ .Name }}{{ end }})) bool {
     rel := e._{{ .Name }}()
 
-    if rel != nil {
-        cleanup := false
-        for i, entry := range rel.rels {
-            ent := entities[(entry.ident >> 32) >> entityPageBits][(entry.ident >> 32) % entityPageSize]
-            if ent.generation() != (entry.ident & 0x00000000FFFFFFFF) {
-                rel.rels[i].ident = 0
-                cleanup = true
-                continue
-            }
+    if rel == nil {
+        return false
+    }
 
-            origSlice := rel.rels
-            each(ent, {{ if .HasData }}&rel.rels[i].data{{ end }})
-            // Copy any mutations made with the passed pointer if the slice changes
-            if cap(origSlice) != cap(rel.rels) && origSlice[i].ident == rel.rels[i].ident {
-                rel.rels[i] = origSlice[i]
-            }
+    cleanup := false
+    for i, entry := range rel.rels {
+        ent := entities[(entry.ident >> 32) >> entityPageBits][(entry.ident >> 32) % entityPageSize]
+        if ent.generation() != (entry.ident & 0x00000000FFFFFFFF) {
+            rel.rels[i].ident = 0
+            cleanup = true
+            continue
         }
 
-        if cleanup {
-            rel.rels = slices.DeleteFunc(rel.rels, func(ent rel{{ .Name }}Entry) bool {
-                return ent.ident == 0
-            })
-        }
-        rel.deletes = 0
-        if len(rel.rels) == 0 {
-            e._Remove{{ .Name }}()
+        origSlice := rel.rels
+        each(ent, {{ if .HasData }}&rel.rels[i].data{{ end }})
+        // Copy any mutations made with the passed pointer if the slice changes
+        if cap(origSlice) != cap(rel.rels) && origSlice[i].ident == rel.rels[i].ident {
+            rel.rels[i] = origSlice[i]
         }
     }
+
+    if cleanup {
+        rel.rels = slices.DeleteFunc(rel.rels, func(ent rel{{ .Name }}Entry) bool {
+            return ent.ident == 0
+        })
+    }
+    rel.deletes = 0
+    if len(rel.rels) == 0 {
+        e._Remove{{ .Name }}()
+    }
+
+    return cleanup
 }
 
-func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Name }}{{ end }}) {
+func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Name }}{{ end }}) bool {
     if !target.Alive() || !e.Alive() {
-        return
+        return false
     }
     rel := e._{{ .Name }}()
     if rel == nil {
@@ -121,10 +125,12 @@ func (e Entity) Set{{ .Name }}(target Entity, {{ if .HasData }}data comp.{{ .Nam
         return int(a.ident >> 32) - int(b.ident >> 32)
     })
     if found {
-        return
+        rel.rels[index] = newEnt
+        return false
     }
 
     rel.rels = slices.Insert(rel.rels, index, newEnt)
+    return true
 }
 
 func (e Entity) {{ .Name }}(target Entity) {{ if .HasData }}*comp.{{ .Name }}{{ else }}bool{{ end }} {
@@ -146,21 +152,21 @@ func (e Entity) {{ .Name }}(target Entity) {{ if .HasData }}*comp.{{ .Name }}{{ 
     return {{ if .HasData }}&rel.rels[index].data{{ else }}true{{ end }}
 }
 
-func (e Entity) Remove{{ .Name }}(target Entity) {
+func (e Entity) Remove{{ .Name }}(target Entity) bool {
     if !target.Alive() || !e.Alive() {
-        return
+        return false
     }
 
     rel := e._{{ .Name }}()
     if rel == nil {
-        return
+        return false
     }
 
     index, found := slices.BinarySearchFunc(rel.rels, rel{{ .Name }}Entry{ident: target.ident}, func(a, b rel{{ .Name }}Entry) int {
         return int(a.ident >> 32) - int(b.ident >> 32)
     })
     if !found {
-        return
+        return false
     }
     // Only mark for deletion, don't modify slice
     rel.rels[index].ident = 0
@@ -169,6 +175,8 @@ func (e Entity) Remove{{ .Name }}(target Entity) {
     if len(rel.rels) == 0 || len(rel.rels) == rel.deletes {
         e._Remove{{ .Name }}()
     }
+
+    return true
 }
 
 func (e Entity) Any{{ .Name }}() bool {
