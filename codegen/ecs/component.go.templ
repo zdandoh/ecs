@@ -194,6 +194,11 @@ func (e Entity) Remove{{ .Name }}(target Entity) bool {
     return true
 }
 
+// RemoveAll{{ .Name }} removes all relationships of type {{ .Name }} from the entity.
+func (e Entity) RemoveAll{{ .Name }}() {
+    e._Remove{{ .Name }}()
+}
+
 // Any{{ .Name }} returns true if the entity has any instances of the {{ .Name }} relationship.
 func (e Entity) Any{{ .Name }}() bool {
     return e._Has{{ .Name }}()

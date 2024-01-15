@@ -344,6 +344,36 @@ func TestRelationship(t *testing.T) {
 	}
 }
 
+func TestRelationshipRemoveAll(t *testing.T) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	apple := ecs.NewEntity()
+	pear := ecs.NewEntity()
+	egg := ecs.NewEntity()
+
+	e.SetLikes(apple)
+	e.SetLikes(pear)
+	e.SetLikes(egg)
+
+	count := 0
+	e.EachLikes(func(e ecs.Entity) {
+		count++
+	})
+	if count != 3 {
+		t.Fatal(count)
+	}
+
+	e.RemoveAllLikes()
+	count = 0
+	e.EachLikes(func(e ecs.Entity) {
+		count++
+	})
+	if count != 0 {
+		t.Fatal(count)
+	}
+}
+
 func TestRelationshipDanglingRef(t *testing.T) {
 	ecs.Reset()
 
@@ -365,7 +395,7 @@ func TestRelationshipDanglingRef(t *testing.T) {
 	}
 }
 
-func BenchmarkRelationshipSelect(b *testing.B) {
+func TestRelationshipSelect(t *testing.T) {
 	ecs.Reset()
 
 	e := ecs.NewEntity()
@@ -374,16 +404,12 @@ func BenchmarkRelationshipSelect(b *testing.B) {
 	e.SetHas(apple, components.Has{Count: 5})
 	e.SetHas(dog, components.Has{Count: 3})
 
-	b.ReportAllocs()
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		count := 0
-		ecs.Select(func(e ecs.Entity, target ecs.Entity, has *components.Has) {
-			count += has.Count
-		})
-		if count != 8 {
-			b.Fatal(count)
-		}
+	count := 0
+	ecs.Select(func(e ecs.Entity, target ecs.Entity, has *components.Has) {
+		count += has.Count
+	})
+	if count != 8 {
+		t.Fatal(count)
 	}
 }
 
