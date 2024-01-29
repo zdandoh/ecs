@@ -201,6 +201,18 @@ func (e Entity) RemoveAll{{ .Name }}() {
 
 // Any{{ .Name }} returns true if the entity has any instances of the {{ .Name }} relationship.
 func (e Entity) Any{{ .Name }}() bool {
-    return e._Has{{ .Name }}()
+    rel := e._{{ .Name }}()
+    if rel == nil {
+        return false
+    }
+
+    for _, entry := range rel.rels {
+        ent := entities[(entry.ident >> 32) >> entityPageBits][(entry.ident >> 32) % entityPageSize]
+        if ent.generation() == (entry.ident & 0x00000000FFFFFFFF) {
+            return true
+        }
+    }
+
+    return false
 }
 {{ end }}

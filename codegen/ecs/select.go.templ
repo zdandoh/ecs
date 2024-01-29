@@ -27,7 +27,7 @@ func SelectSorted(cmp func(a Entity, b Entity) int, selector interface{}) {
         panic(fmt.Sprintf("unknown selector function: run go generate: %s", reflect.TypeOf(selector).String()))
     }
 
-    slices.SortFunc(sortSpace[:i], cmp)
+    slices.SortStableFunc(sortSpace[:i], cmp)
     for j := 0; j < i; j++ {
         entity := sortSpace[j]
         switch fun := selector.(type) {
