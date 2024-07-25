@@ -395,6 +395,32 @@ func TestRelationshipDanglingRef(t *testing.T) {
 	}
 }
 
+func TestAnyRelationship(t *testing.T) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+
+	for i := 0; i < 4; i++ {
+		c := ecs.NewEntity()
+		e.SetLikes(c)
+	}
+
+	subLikes := 0
+	for i := 0; i < 5; i++ {
+		e.EachLikes(func(like ecs.Entity) {
+			if like.AnyLikes() {
+				return
+			}
+			subLikes++
+			newEnt := ecs.NewEntity()
+			like.SetLikes(newEnt)
+		})
+	}
+	if subLikes != 4 {
+		t.Fatal(subLikes)
+	}
+}
+
 func TestRelationshipSelect(t *testing.T) {
 	ecs.Reset()
 
@@ -483,6 +509,35 @@ func TestHasComponent(t *testing.T) {
 	if !newDog.HasHealth() {
 		t.Fatal("new entity should have component")
 	}
+}
+
+func TestSystem(t *testing.T) {
+	ecs.Reset()
+
+	e := ecs.NewEntity()
+	e.SetPos(components.Pos{55.0, 56.0})
+
+	order := -100
+	selector := func(pos int) func(e ecs.Entity, _ *components.Pos) {
+		return func(e ecs.Entity, _ *components.Pos) {
+			fmt.Println(pos)
+			if pos <= order {
+				t.Fatalf("system out of order: got %d, expected greater than %d", pos, order)
+			}
+			order = pos
+		}
+	}
+
+	ecs.AddSystem(selector(1))
+	ecs.AddSystem(selector(2))
+	ecs.AddSystem(selector(3))
+	ecs.AddSystem(selector(4))
+
+	ecs.AddSystem(selector(-5), ecs.WithPhase(-1))
+	ecs.AddSystem(selector(-4), ecs.WithPhase(-1), ecs.WithPriority(2))
+
+	ecs.AddSystem(selector(-3), ecs.WithPriority(-1))
+	ecs.Update()
 }
 
 func test1(entity ecs.Entity, health *components.Health) {

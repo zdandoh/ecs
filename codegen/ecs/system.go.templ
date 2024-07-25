@@ -2,34 +2,77 @@
 
 package {{ .Pkg }}
 
-type System interface {
-	Update()
-	Priority() int
+import (
+    "slices"
+)
+
+type system struct {
+    selector any
+    opts systemOptions
 }
 
-func AddSystem(newSystem System) {
-	insertIdx := len(systems)
-	for i, system := range systems {
-		if newSystem.Priority() > system.Priority() {
-			insertIdx = i
-			break
-		}
-	}
+type systemOptions struct {
+    sortFunc func(a Entity, b Entity) int
+    priority int
+    phase    int
+}
 
-	if len(systems) == insertIdx {
-		systems = append(systems, newSystem)
-	} else {
-		systems = append(systems[:insertIdx+1], systems[insertIdx:]...)
-		systems[insertIdx] = newSystem
-	}
+type SystemOption func(opts *systemOptions)
+
+func WithSortFunc(cmp func(a Entity, b Entity) int) SystemOption {
+    return func(opts *systemOptions) {
+        opts.sortFunc = cmp
+    }
+}
+
+// WithPriority sets the order that the system is evaluated within a phase. Greater
+// numbers are evaluated later. If a priority is not specified, systems are evaluated
+// in the order that they were added.
+func WithPriority(priority int) SystemOption {
+    return func(opts *systemOptions) {
+        opts.priority = priority
+    }
+}
+
+// WithPhase sets the phase that a system is a part of. Phases are evaluated in order,
+// with greater phases evaluated later. Systems within a phase are sorted by priority.
+func WithPhase(phase int) SystemOption {
+    return func(opts *systemOptions) {
+        opts.phase = phase
+    }
+}
+
+// AddSystem adds a system to the internal system set. Systems can be evaluated in
+// order by calling Update()
+func AddSystem(selector interface{}, opts ...SystemOption) {
+    s := system{}
+    s.selector = selector
+    for _, opt := range opts {
+        opt(&s.opts)
+    }
+
+    systems = append(systems, s)
+
+    slices.SortStableFunc(systems, func(a system, b system) int {
+        if(a.opts.phase == b.opts.phase) {
+            return a.opts.priority - b.opts.priority
+        }
+        return a.opts.phase - b.opts.phase
+    })
 }
 
 func ClearSystems() {
-    systems = make([]System, 0)
+    systems = make([]system, 0)
 }
 
+// Update evaluates each system, first by phase, then by priority, then by
+// the order that each system was added.
 func Update() {
-    for _, system := range systems {
-        system.Update()
+    for _, s := range systems {
+        if s.opts.sortFunc != nil {
+            SelectSorted(s.opts.sortFunc, s.selector)
+        } else {
+            Select(s.selector)
+        }
     }
 }

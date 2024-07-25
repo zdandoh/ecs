@@ -8,7 +8,7 @@ import "{{ .FullPkg }}/entity"
 var currEntities = 0
 var entityCap = 0
 
-var systems []System
+var systems []system
 
 func init() {
     newEntityPage()
@@ -32,6 +32,7 @@ func newEntityPage() {
 
 // Reset deletes all entities, components, and state of the current ECS.
 func Reset() {
+    ClearSystems()
     entities = nil
     freeList = nil
     pageHeaders = nil
