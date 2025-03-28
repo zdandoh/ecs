@@ -8,19 +8,19 @@ The code generator supports an unlimited number of components, and can grow its 
 The code generator takes a package containing only component definitions as an input.
 
 # How to Use
-1. Create a "root" package that will use the generated ECS package. The root package must
-have go modules setup.
-```go
-package main
-
-import "fmt"
-
-func main() {
-	fmt.Println("My new package!")
-}
+1. Create (or use a pre-existing) Go module that will use the generated ECS package. For this example, assume the
+following structure:
+```
+mygomodule/
+├─ go.mod
+├─ components/
+│  ├─ components.go
+├─ main.go
 ```
 
-2. Create a subpackage within the root package containing all your component definitions.
+2. Run `go get -tool github.com/zdandoh/ecs/codegen`
+
+3. Create a package within your module containing all your component definitions. This package should contain only component definitions.
 ```go
 package components
 
@@ -34,9 +34,9 @@ type Name string
 type Health int
 ```
 
-3. Add a `go generate` directive to one of the source files of your root package. This
-directive takes the name of the generated package and the name of the component package as
-arguments.
+4. Add a `go generate` directive to any source file in your module. This
+directive takes the name of the input component package and the name of the 
+package to be generated as arguments.
 ```go
 package main
 
@@ -50,7 +50,8 @@ func main() {
 }
 ```
 
-4. Run `go generate`
+5. Run `go generate`. The tool will automagically scan your module for component
+queries that it needs to generate code for.
 
 You're done! The generated ECS package can be imported and used
 ```go
@@ -113,7 +114,7 @@ Costs 3.75 ns per matching entity, and 0.75 ns per non-matching entity.
 ### How It Works
 The code generator uses the provided component definitions to generate
 helper functions and storage data structures for each component, but also
-analyzes the root package to determine which component queries are made.
+analyzes the module to determine which component queries are made.
 This is necessary because the library needs to know which subsets
 of components might be queried against so that it can generate code to serve
 those queries. This allows the generated library to fully avoid reflection
