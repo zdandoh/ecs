@@ -9,7 +9,7 @@ The code generator takes a package containing only component definitions as an i
 
 ## Example
 The following component definitions:
-```
+```go
 type Position struct {
 	X int
 	Y int
@@ -20,7 +20,7 @@ type Name string
 type Health int
 ```
 Can be used like this!
-```
+```go
 func main() {
     // Create some entities
     cat := ecs.NewEntity()
@@ -164,3 +164,31 @@ This is necessary because the library needs to know which subsets
 of components might be queried against so that it can generate code to serve
 those queries. This allows the generated library to fully avoid reflection
 while maintaining the nice selection syntax.
+
+## Relationships
+This library has basic support for relationships, which are special
+components that allow for the modeling of one-to-many relationships in an ecs.
+To define a new relationship, annotate a component with a `Relationship` field:
+```go
+type Has struct {
+	Relationship struct{}
+	Count        int
+}
+```
+The code generator generates new helpers that are specific to relationships:
+```go
+func main() {
+    boy := ecs.NewEntity()
+    dog := ecs.NewEntity()
+    apple := ecs.NewEntity()
+
+    boy.SetHas(dog, components.Has{Count: 1})
+    boy.SetHas(apple, components.Has{Count: 5})
+
+    count := 0
+    e.EachHas(func(e ecs.Entity, has *components.Has) {
+		count += has.Count
+	})
+    fmt.Println("The boy has %d things", count)
+}
+```
