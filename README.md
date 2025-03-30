@@ -71,7 +71,7 @@ boy.SetHas(dog, components.Has{Count: 1})
 boy.SetHas(apple, components.Has{Count: 5})
 
 count := 0
-e.EachHas(func(e ecs.Entity, has *components.Has) {
+boy.EachHas(func(e ecs.Entity, has *components.Has) {
     count += has.Count
 })
 fmt.Println("The boy has %d things", count)
@@ -123,48 +123,8 @@ func main() {
 5. Run `go generate`. The tool will automagically scan your module for component
 queries that it needs to generate code for.
 
-You're done! The generated ECS package can be imported and used
-```go
-package main
-
-// This will generate a package named "myecspkg" when go generate is run.
-//go:generate go run github.com/zdandoh/ecs/codegen myecspkg components
-
-import (
-	"fmt"
-	"components"
-	ecs "myecspkg"
-)
-
-func main() {
-    cat := ecs.NewEntity()
-    dog := ecs.NewEntity()
-    
-    // Give them some components
-    cat.SetHealth(46)
-    dog.SetHealth(100)
-    
-    cat.SetName("mixer")
-    dog.SetName("rex")
-    
-    dog.SetPosition(components.Position{45, 120})
-    
-    // Run efficient ECS queries without reflection
-    ecs.Select(func(entity ecs.Entity, name *components.Name, hp *components.Health) {
-        fmt.Println("%s has %d health", *name, *hp)
-    })
-    ecs.Select(func(entity ecs.Entity, hp *components.Health) {
-        *hp -= 1
-        if hp <= 0 {
-            if entity.HasName() {
-                fmt.Printf("%s died!\n", entity.Name())
-            }
-            entity.Kill()
-        }
-    })
-}
-```
-If you use this library you probably will want to run `go generate` as a
+You're done! The generated ECS package can be imported and used.
+When using this library you probably will want to run `go generate` as a
 pre-build step.
 
 ## Performance
