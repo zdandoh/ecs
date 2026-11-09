@@ -19,8 +19,16 @@ type Entity struct {
 
 type pageHeader [{{ .CompCount }}]uint16
 
+// Each component has one occupancy bit per entity in a page. Pages are allocated
+// separately so callbacks that grow the world cannot invalidate query pointers.
+type pageBitset struct {
+    components [{{ .CompCount }}][entityPageSize / 64]uint64
+    version uint64
+}
+
 var freeList []EntityID
 var pageHeaders []pageHeader
+var pageBitsets []*pageBitset
 var entities [][]Entity
 
 // Kill makes the entity eligible for reuse and prevents any subsequent modifications to
@@ -30,11 +38,15 @@ func (e Entity) Kill() {
         return
     }
 
-    for _, compPart := range entities[e.id() >> entityPageBits][e.id() % entityPageSize].components {
-        end := 64 - bits.LeadingZeros64(compPart)
-        start := bits.TrailingZeros64(compPart)
-        for i := start; i < end; i++ {
-            pageHeaders[e.id()>>entityPageBits][i] -= uint16((compPart >> i) & 1)
+    pageNo := e.id() >> entityPageBits
+    slot := e.id() % entityPageSize
+    for part, compPart := range entities[pageNo][slot].components {
+        for compPart != 0 {
+            i := part * 64 + bits.TrailingZeros64(compPart)
+            pageHeaders[pageNo][i]--
+            pageBitsets[pageNo].components[i][slot / 64] &^= uint64(1) << (slot % 64)
+            pageBitsets[pageNo].version++
+            compPart &= compPart - 1
         }
     }
 

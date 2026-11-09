@@ -44,6 +44,8 @@ func (e Entity) {{ cprefix $c }}Set{{ .Name }}(c {{ cpkg . }}{{ .Name }}) {
 
     if entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} == 0 {
         pageHeaders[e.id() >> entityPageBits][{{ $i }}]++
+        pageBitsets[e.id() >> entityPageBits].components[{{ $i }}][(e.id() % entityPageSize) / 64] |= uint64(1) << (e.id() % 64)
+        pageBitsets[e.id() >> entityPageBits].version++
     }
     entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] |= {{ compsubindex $i }}
     store{{ .Name }}[e.id() >> entityPageBits][e.id() % entityPageSize] = c
@@ -59,6 +61,8 @@ func (e Entity) {{ cprefix $c }}Remove{{ .Name }}() {
 
     if entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] & {{ compsubindex $i }} != 0 {
         pageHeaders[e.id() >> entityPageBits][{{ $i }}]--
+        pageBitsets[e.id() >> entityPageBits].components[{{ $i }}][(e.id() % entityPageSize) / 64] &^= uint64(1) << (e.id() % 64)
+        pageBitsets[e.id() >> entityPageBits].version++
     }
     entities[e.id() >> entityPageBits][e.id() % entityPageSize].components[{{ compmapindex $i }}] &= ^uint64({{ compsubindex $i }})
     // Zero any pointers to allow the GC to free memory

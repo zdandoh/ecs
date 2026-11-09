@@ -21,6 +21,7 @@ func newEntityPage() {
     entities = append(entities, newPage)
 
     pageHeaders = append(pageHeaders, pageHeader{})
+    pageBitsets = append(pageBitsets, new(pageBitset))
     sortSpace = make([]Entity, entityCap + entityPageSize)
 
     {{ range .Comps }}
@@ -36,6 +37,7 @@ func Reset() {
     entities = nil
     freeList = nil
     pageHeaders = nil
+    pageBitsets = nil
     {{ range .Comps }}
     store{{ .Name }} = nil
     {{ end }}

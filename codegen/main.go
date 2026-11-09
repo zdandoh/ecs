@@ -30,8 +30,8 @@ var templFuncs = map[string]interface{}{
 	"compmapindex": func(index int) int {
 		return index / 64
 	},
-	"compsubindex": func(index int) int {
-		return 1 << (index % 64)
+	"compsubindex": func(index int) uint64 {
+		return uint64(1) << (index % 64)
 	},
 	"makerange": func(i int) []int {
 		return make([]int, i)
